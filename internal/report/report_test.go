@@ -36,11 +36,17 @@ func assertCounts(t *testing.T, got, want report.Counts) {
 	if got.Total != want.Total {
 		t.Errorf("Total = %d, want %d", got.Total, want.Total)
 	}
-	if got.Transport != want.Transport {
-		t.Errorf("Transport = %d, want %d", got.Transport, want.Transport)
-	}
 	if got.Equipment != want.Equipment {
 		t.Errorf("Equipment = %d, want %d", got.Equipment, want.Equipment)
+	}
+	if got.ProfessionalTransport != want.ProfessionalTransport {
+		t.Errorf(
+			"ProfessionalTransport = %d, want %d",
+			got.ProfessionalTransport, want.ProfessionalTransport,
+		)
+	}
+	if got.BeginnerTransport != want.BeginnerTransport {
+		t.Errorf("BeginnerTransport = %d, want %d", got.BeginnerTransport, want.BeginnerTransport)
 	}
 	if !slices.Equal(got.Categories, want.Categories) {
 		t.Errorf("Categories = %+v, want %+v", got.Categories, want.Categories)
@@ -58,10 +64,10 @@ func testInventory(t *testing.T) ([]domain.IInventoriable, []domain.IInventoriab
 	beginner := []domain.IInventoriable{
 		item(t, domain.KindScooter, "SCOOT-001", 8),
 		item(t, domain.KindBicycle, "BIKE-001", 9),
+		item(t, domain.KindScooter, "SCOOT-004", 7),
 	}
 	items := slices.Clone(beginner)
 	items = append(items,
-		item(t, domain.KindScooter, "SCOOT-004", 7),
 		item(t, domain.KindEBike, "EBIKE-001", 5),
 		equipment(t, domain.KindHelmet, "HELMET-001", 0),
 		equipment(t, domain.KindKneePads, "KNEE-001", 0),
@@ -75,9 +81,10 @@ func TestBuildCountsAndSections(t *testing.T) {
 	document := report.Build(items, beginner)
 
 	wantCounts := report.Counts{
-		Total:     7,
-		Transport: 4,
-		Equipment: 3,
+		Total:                 7,
+		Equipment:             3,
+		ProfessionalTransport: 1,
+		BeginnerTransport:     3,
 		Categories: []report.CategoryCount{
 			{Category: domain.CategoryScooter, Count: 2},
 			{Category: domain.CategoryBicycle, Count: 1},
@@ -100,11 +107,14 @@ func TestBuildCountsAndSections(t *testing.T) {
 			t.Errorf("equipment section contains non-equipment item: %+v", item)
 		}
 	}
-	if len(document.Transport) != 4 {
-		t.Errorf("transport = %d, want 4", len(document.Transport))
+	if len(document.ProfessionalTransport) != 1 {
+		t.Errorf("professional transport = %d, want 1", len(document.ProfessionalTransport))
 	}
-	if len(document.BeginnerTransport) != 2 {
-		t.Errorf("beginner transport = %d, want 2", len(document.BeginnerTransport))
+	if got := document.ProfessionalTransport[0]; got.InventoryNumber != "EBIKE-001" {
+		t.Errorf("professional[0] = %+v, want EBIKE-001", got)
+	}
+	if len(document.BeginnerTransport) != 3 {
+		t.Errorf("beginner transport = %d, want 3", len(document.BeginnerTransport))
 	}
 	if got := document.BeginnerTransport[0]; got.InventoryNumber != "SCOOT-001" || got.Category != domain.CategoryScooter {
 		t.Errorf("beginner[0] = %+v, want SCOOT-001/scooter", got)
@@ -161,8 +171,9 @@ func TestRenderTextContainsCountsAndCategories(t *testing.T) {
 	for _, want := range []string{
 		"hse-scoot — отчёт по инвентарю",
 		"Всего вещей на учёте: 7",
-		"Транспорт: 4",
 		"Оборудование: 3",
+		"Транспорт для профессионалов: 1",
+		"Транспорт для новичков: 3",
 		"Самокаты: 2",
 		"Велосипеды: 1",
 		"Электровелосипеды: 1",
@@ -171,8 +182,8 @@ func TestRenderTextContainsCountsAndCategories(t *testing.T) {
 		"Зарядные станции: 1",
 		"Суммарное суточное потребление: 5.00 кВт·ч",
 		"Всё оборудование (3):",
-		"Транспорт (4):",
-		"Транспорт для новичков (2):",
+		"Транспорт для профессионалов (1):",
+		"Транспорт для новичков (3):",
 		"SCOOT-001 — самокат",
 		"BIKE-001 — велосипед",
 		"EBIKE-001 — электровелосипед",
@@ -192,11 +203,16 @@ func TestChargingStationCountedAsEquipment(t *testing.T) {
 	}
 	document := report.Build(items, nil)
 
-	if document.Counts.Total != 1 || document.Counts.Transport != 0 || document.Counts.Equipment != 1 {
-		t.Errorf("counts = %+v, want total=1 transport=0 equipment=1", document.Counts)
+	if document.Counts.Total != 1 || document.Counts.Equipment != 1 ||
+		document.Counts.ProfessionalTransport != 0 || document.Counts.BeginnerTransport != 0 {
+		t.Errorf("counts = %+v, want total=1 equipment=1 transport=0/0", document.Counts)
 	}
-	if len(document.Equipment) != 1 || len(document.Transport) != 0 {
-		t.Errorf("equipment/transport lists = %d/%d, want 1/0", len(document.Equipment), len(document.Transport))
+	if len(document.Equipment) != 1 ||
+		len(document.ProfessionalTransport) != 0 || len(document.BeginnerTransport) != 0 {
+		t.Errorf(
+			"equipment/professional/beginner = %d/%d/%d, want 1/0/0",
+			len(document.Equipment), len(document.ProfessionalTransport), len(document.BeginnerTransport),
+		)
 	}
 	wantCategories := []report.CategoryCount{
 		{Category: domain.CategoryChargingStation, Count: 1},
@@ -240,8 +256,9 @@ func TestNewCategoryAppearsInStatisticsWithoutReportChanges(t *testing.T) {
 	if !slices.Equal(document.Counts.Categories, wantCategories) {
 		t.Errorf("categories = %+v, want %+v", document.Counts.Categories, wantCategories)
 	}
-	if document.Counts.Equipment != 1 || document.Counts.Transport != 0 {
-		t.Errorf("counts = %+v, want equipment=1 transport=0", document.Counts)
+	if document.Counts.Equipment != 1 ||
+		document.Counts.ProfessionalTransport != 0 || document.Counts.BeginnerTransport != 0 {
+		t.Errorf("counts = %+v, want equipment=1 transport=0/0", document.Counts)
 	}
 
 	text := report.RenderText(document)

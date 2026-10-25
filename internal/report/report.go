@@ -16,8 +16,9 @@ type CategoryCount struct {
 // появления в инвентаре, поэтому новые виды не требуют правок отчёта.
 type Counts struct {
 	Total                    int
-	Transport                int
 	Equipment                int
+	ProfessionalTransport    int
+	BeginnerTransport        int
 	Categories               []CategoryCount
 	TotalDailyConsumptionKWh float64
 }
@@ -30,41 +31,44 @@ type Item struct {
 
 // Document — готовый отчёт по инвентарю.
 type Document struct {
-	Counts            Counts
-	Equipment         []Item
-	Transport         []Item
-	BeginnerTransport []Item
+	Counts                Counts
+	Equipment             []Item
+	ProfessionalTransport []Item
+	BeginnerTransport     []Item
 }
 
 // Build формирует отчёт: оборудование (всё, что не транспорт), транспорт
 // и отдельно транспорт, подходящий новичкам.
 func Build(items, beginnerItems []domain.IInventoriable) Document {
-	document := Document{
-		Counts: Counts{
-			Total:                    CountAll(items),
-			Transport:                CountTransport(items),
-			Equipment:                CountEquipment(items),
-			Categories:               CountCategories(items),
-			TotalDailyConsumptionKWh: CountDailyConsumptionKWh(items),
-		},
+	beginner := make(map[string]struct{}, len(beginnerItems))
+	for _, item := range beginnerItems {
+		if _, ok := item.(domain.ITransport); ok {
+			beginner[item.GetInventoryNumber()] = struct{}{}
+		}
 	}
 
+	document := Document{}
 	for _, item := range items {
 		view := newItem(item)
-		if _, ok := item.(domain.ITransport); ok {
-			document.Transport = append(document.Transport, view)
-			continue
-		}
-		document.Equipment = append(document.Equipment, view)
-	}
-
-	for _, item := range beginnerItems {
 		if _, ok := item.(domain.ITransport); !ok {
+			document.Equipment = append(document.Equipment, view)
 			continue
 		}
-		document.BeginnerTransport = append(document.BeginnerTransport, newItem(item))
+		if _, ok := beginner[view.InventoryNumber]; ok {
+			document.BeginnerTransport = append(document.BeginnerTransport, view)
+			continue
+		}
+		document.ProfessionalTransport = append(document.ProfessionalTransport, view)
 	}
 
+	document.Counts = Counts{
+		Total:                    CountAll(items),
+		Equipment:                len(document.Equipment),
+		ProfessionalTransport:    len(document.ProfessionalTransport),
+		BeginnerTransport:        len(document.BeginnerTransport),
+		Categories:               CountCategories(items),
+		TotalDailyConsumptionKWh: CountDailyConsumptionKWh(items),
+	}
 	return document
 }
 

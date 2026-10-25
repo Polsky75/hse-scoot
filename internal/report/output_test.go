@@ -42,7 +42,7 @@ func TestFileOutputWritesFileAndNotice(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadFile() error = %v", err)
 	}
-	if !strings.Contains(string(content), "Транспорт для новичков (2):") {
+	if !strings.Contains(string(content), "Транспорт для новичков (3):") {
 		t.Errorf("file does not contain report:\n%s", content)
 	}
 	if !strings.Contains(notice.String(), path) {

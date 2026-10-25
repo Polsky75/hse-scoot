@@ -11,8 +11,9 @@ func RenderText(document Document) string {
 
 	out.WriteString("hse-scoot — отчёт по инвентарю\n\n")
 	fmt.Fprintf(&out, "Всего вещей на учёте: %d\n", document.Counts.Total)
-	fmt.Fprintf(&out, "Транспорт: %d\n", document.Counts.Transport)
 	fmt.Fprintf(&out, "Оборудование: %d\n", document.Counts.Equipment)
+	fmt.Fprintf(&out, "Транспорт для профессионалов: %d\n", document.Counts.ProfessionalTransport)
+	fmt.Fprintf(&out, "Транспорт для новичков: %d\n", document.Counts.BeginnerTransport)
 	for _, count := range document.Counts.Categories {
 		if count.Count == 0 {
 			continue
@@ -22,7 +23,7 @@ func RenderText(document Document) string {
 	fmt.Fprintf(&out, "Суммарное суточное потребление: %.2f кВт·ч\n", document.Counts.TotalDailyConsumptionKWh)
 
 	writeSection(&out, "Всё оборудование", document.Equipment)
-	writeSection(&out, "Транспорт", document.Transport)
+	writeSection(&out, "Транспорт для профессионалов", document.ProfessionalTransport)
 	writeSection(&out, "Транспорт для новичков", document.BeginnerTransport)
 
 	return out.String()
