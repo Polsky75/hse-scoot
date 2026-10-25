@@ -171,3 +171,54 @@ func TestInteractiveAcceptsEquipmentApplication(t *testing.T) {
 		}
 	}
 }
+
+func TestRejectedTransportDoesNotReserveCustomNumber(t *testing.T) {
+	app, out, inspector := newApp(t)
+
+	// Один и тот же номер сначала отклонён, затем принят.
+	input := "2\n1\nREJECT-01\n1\n5\n40\n2\n1\nREJECT-01\n1\n5\n80\n0\n"
+	if err := app.Run(strings.NewReader(input)); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	wantCalls := []inspectCall{
+		{inventoryNumber: "REJECT-01", condition: 40},
+		{inventoryNumber: "REJECT-01", condition: 80},
+	}
+	if len(inspector.calls) != len(wantCalls) {
+		t.Fatalf("inspection calls = %+v, want %+v", inspector.calls, wantCalls)
+	}
+	for i, want := range wantCalls {
+		if inspector.calls[i] != want {
+			t.Errorf("call[%d] = %+v, want %+v", i, inspector.calls[i], want)
+		}
+	}
+
+	text := out.String()
+	for _, want := range []string{
+		"Заявка отклонена: техосмотр не пройден. Номер REJECT-01 не присвоен.",
+		"Заявка принята. Присвоен номер: REJECT-01 — самокат",
+		"Всего вещей на учёте: 1",
+	} {
+		if !strings.Contains(text, want) {
+			t.Errorf("output does not contain %q:\n%s", want, text)
+		}
+	}
+}
+
+func TestRejectedTransportDoesNotConsumeAutoNumber(t *testing.T) {
+	app, out, _ := newApp(t)
+
+	input := "2\n1\n\n1\n5\n40\n2\n1\n\n1\n5\n80\n0\n"
+	if err := app.Run(strings.NewReader(input)); err != nil {
+		t.Fatalf("Run() error = %v", err)
+	}
+
+	text := out.String()
+	if !strings.Contains(text, "Заявка принята. Присвоен номер: SCOOT-001 — самокат") {
+		t.Errorf("rejected transport consumed auto number:\n%s", text)
+	}
+	if strings.Contains(text, "SCOOT-002") {
+		t.Errorf("auto number advanced after rejection:\n%s", text)
+	}
+}

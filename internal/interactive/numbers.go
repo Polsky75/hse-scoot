@@ -1,48 +1,41 @@
 package interactive
 
 import (
-	"errors"
 	"fmt"
-	"strings"
 
 	"github.com/Polsky75/hse-scoot/internal/domain"
 )
 
 type numberAllocator struct {
-	used     map[string]struct{}
-	counters map[domain.ItemCategory]int
+	used map[string]struct{}
 }
 
 func newNumberAllocator() *numberAllocator {
-	return &numberAllocator{
-		used:     make(map[string]struct{}),
-		counters: make(map[domain.ItemCategory]int),
-	}
+	return &numberAllocator{used: make(map[string]struct{})}
 }
 
-// Next возвращает следующий свободный автоматический номер для категории.
+// Next возвращает первый свободный автоматический номер для категории.
+// Номер не занимается до успешной регистрации.
 func (n *numberAllocator) Next(category domain.ItemCategory) string {
-	for {
-		n.counters[category]++
-		number := fmt.Sprintf("%s-%03d", categoryPrefix(category), n.counters[category])
-		if _, exists := n.used[number]; exists {
-			continue
+	for i := 1; ; i++ {
+		number := fmt.Sprintf("%s-%03d", categoryPrefix(category), i)
+		if _, exists := n.used[number]; !exists {
+			return number
 		}
-		n.used[number] = struct{}{}
-		return number
 	}
 }
 
-// Reserve занимает номер, введённый пользователем.
-func (n *numberAllocator) Reserve(number string) error {
-	if strings.ContainsAny(number, " \t") {
-		return errors.New("номер не должен содержать пробелов")
-	}
+// EnsureAvailable проверяет, что номер ещё не занят успешной регистрацией.
+func (n *numberAllocator) EnsureAvailable(number string) error {
 	if _, exists := n.used[number]; exists {
 		return fmt.Errorf("номер %q уже используется", number)
 	}
-	n.used[number] = struct{}{}
 	return nil
+}
+
+// Commit окончательно занимает номер после успешной регистрации.
+func (n *numberAllocator) Commit(number string) {
+	n.used[number] = struct{}{}
 }
 
 func categoryPrefix(category domain.ItemCategory) string {

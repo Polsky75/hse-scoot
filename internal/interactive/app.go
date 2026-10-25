@@ -89,6 +89,7 @@ func (a *App) addRegistered(scanner *bufio.Scanner) error {
 	}
 
 	a.fleet.AddRegistered(item)
+	a.numbers.Commit(item.GetInventoryNumber())
 	fmt.Fprintf(
 		a.out,
 		"Добавлено на учёт. Номер: %s — %s\n",
@@ -118,9 +119,10 @@ func (a *App) addTransportApplication(scanner *bufio.Scanner) error {
 		return nil
 	}
 	if err := a.fleet.RegisterTransport(transport, condition); err != nil {
-		fmt.Fprintf(a.out, "Заявка отклонена: %v\n", err)
+		fmt.Fprintf(a.out, "Заявка отклонена: %v. Номер %s не присвоен.\n", err, number)
 		return nil
 	}
+	a.numbers.Commit(item.GetInventoryNumber())
 
 	fmt.Fprintf(
 		a.out,
@@ -148,6 +150,7 @@ func (a *App) addEquipmentApplication(scanner *bufio.Scanner) error {
 
 	// Оборудование не проходит техосмотр и принимается сразу.
 	a.fleet.AddRegistered(item)
+	a.numbers.Commit(item.GetInventoryNumber())
 	fmt.Fprintf(
 		a.out,
 		"Заявка принята. Присвоен номер: %s — %s\n",
@@ -209,7 +212,7 @@ func (a *App) chooseNumber(scanner *bufio.Scanner, category domain.ItemCategory)
 			)
 			continue
 		}
-		if err := a.numbers.Reserve(number); err != nil {
+		if err := a.numbers.EnsureAvailable(number); err != nil {
 			fmt.Fprintf(a.out, "Ошибка: %v. Повторите ввод.\n", err)
 			continue
 		}
