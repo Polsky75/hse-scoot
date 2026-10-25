@@ -58,3 +58,9 @@
 > Проверяй техосмотр через mock/fake/stub
 
 **Сделано:** в `fleet` добавлен порт `Inspector`; `fleet.Service` зависит от интерфейса, конкретный `inspection.Inspector` внедряется в `di`; тесты `fleet` и `console` переведены на `fakeInspector` с записью вызовов и управляемой ошибкой; добавлены проверки, что осматривается только `[incoming]`-транспорт; оформлен [ADR 007](docs/decisions/007-inspector-port.md). Покрытие — **88.9%**.
+
+## 2026-10-25 19:03 — Актуализируй .gitignore
+
+> Актуализируй .gitignore
+
+**Сделано:** обновлён `.gitignore`: macOS (`.DS_Store`, `._*`), IDE, сборочный бинарник `hse-scoot`, coverage и отчётные файлы, `.env`; файл [data/devices.txt](data/devices.txt) не игнорируется.
