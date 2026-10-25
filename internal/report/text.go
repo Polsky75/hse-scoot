@@ -14,8 +14,9 @@ func RenderText(document Document) string {
 	fmt.Fprintf(&out, "Транспорт: %d\n", document.Counts.Transport)
 	fmt.Fprintf(&out, "Самокаты: %d\n", document.Counts.Scooters)
 	fmt.Fprintf(&out, "Наколенники: %d\n", document.Counts.KneePads)
+	fmt.Fprintf(&out, "Суммарное суточное потребление: %.2f кВт·ч\n", document.Counts.TotalDailyConsumptionKWh)
 
-	writeSection(&out, "Вся техника", document.AllItems)
+	writeSection(&out, "Всё оборудование", document.Equipment)
 	writeSection(&out, "Транспорт", document.Transport)
 	writeSection(&out, "Транспорт для новичков", document.BeginnerTransport)
 

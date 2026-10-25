@@ -87,7 +87,8 @@ func TestRunWritesStatusAndReport(t *testing.T) {
 		"Транспорт: 3",
 		"Самокаты: 1",
 		"Наколенники: 1",
-		"Вся техника (6):",
+		"Суммарное суточное потребление: 3.50 кВт·ч",
+		"Всё оборудование (3):",
 		"Транспорт (3):",
 		"Транспорт для новичков (1):",
 		"SCOOT-001 — самокат",
@@ -117,7 +118,8 @@ func TestRunWritesEmptyInventory(t *testing.T) {
 		"Транспорт: 0",
 		"Самокаты: 0",
 		"Наколенники: 0",
-		"Вся техника (0):",
+		"Суммарное суточное потребление: 0.00 кВт·ч",
+		"Всё оборудование (0):",
 	} {
 		if !strings.Contains(reportText, want) {
 			t.Errorf("report does not contain %q:\n%s", want, reportText)

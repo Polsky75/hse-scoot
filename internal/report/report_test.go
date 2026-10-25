@@ -52,11 +52,25 @@ func TestBuildCountsAndSections(t *testing.T) {
 	items, beginner := testInventory(t)
 	document := report.Build(items, beginner)
 
-	if got := document.Counts; got != (report.Counts{Total: 7, Transport: 4, Scooters: 2, KneePads: 1}) {
-		t.Errorf("counts = %+v, want total=7 transport=4 scooters=2 kneePads=1", got)
+	wantCounts := report.Counts{
+		Total:                    7,
+		Transport:                4,
+		Scooters:                 2,
+		KneePads:                 1,
+		TotalDailyConsumptionKWh: 3,
 	}
-	if len(document.AllItems) != 7 {
-		t.Errorf("all items = %d, want 7", len(document.AllItems))
+	if got := document.Counts; got != wantCounts {
+		t.Errorf("counts = %+v, want %+v", got, wantCounts)
+	}
+	if len(document.Equipment) != 3 {
+		t.Fatalf("equipment = %d, want 3", len(document.Equipment))
+	}
+	for _, item := range document.Equipment {
+		switch item.Category {
+		case domain.CategoryHelmet, domain.CategoryKneePads, domain.CategoryChargingStation:
+		default:
+			t.Errorf("equipment section contains non-equipment item: %+v", item)
+		}
 	}
 	if len(document.Transport) != 4 {
 		t.Errorf("transport = %d, want 4", len(document.Transport))
@@ -87,6 +101,9 @@ func TestCountFunctions(t *testing.T) {
 	if got := report.CountCategory(items, domain.CategoryHelmet); got != 1 {
 		t.Errorf("CountCategory(helmet) = %d, want 1", got)
 	}
+	if got := report.CountDailyConsumptionKWh(items); got != 3 {
+		t.Errorf("CountDailyConsumptionKWh() = %v, want 3", got)
+	}
 }
 
 func TestRenderTextContainsCountsAndCategories(t *testing.T) {
@@ -99,7 +116,8 @@ func TestRenderTextContainsCountsAndCategories(t *testing.T) {
 		"Транспорт: 4",
 		"Самокаты: 2",
 		"Наколенники: 1",
-		"Вся техника (7):",
+		"Суммарное суточное потребление: 3.00 кВт·ч",
+		"Всё оборудование (3):",
 		"Транспорт (4):",
 		"Транспорт для новичков (2):",
 		"SCOOT-001 — самокат",
