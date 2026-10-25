@@ -9,7 +9,6 @@ import (
 	"github.com/Polsky75/hse-scoot/internal/console"
 	"github.com/Polsky75/hse-scoot/internal/domain"
 	"github.com/Polsky75/hse-scoot/internal/fleet"
-	"github.com/Polsky75/hse-scoot/internal/inspection"
 	"github.com/Polsky75/hse-scoot/internal/report"
 	"github.com/Polsky75/hse-scoot/internal/source"
 )
@@ -23,14 +22,23 @@ func (s fakeSource) Load() (source.Dataset, error) {
 	return s.dataset, s.err
 }
 
-func newApp(t *testing.T, src source.Source, reportOut, statusOut *bytes.Buffer) *console.App {
-	t.Helper()
-	inspector, err := inspection.NewInspector(inspection.DefaultMinCondition)
-	if err != nil {
-		t.Fatalf("NewInspector() error = %v", err)
+var errInspection = errors.New("техосмотр не пройден (fake)")
+
+// fakeInspector — тестовый дубль техосмотра с управляемым отказом.
+type fakeInspector struct {
+	rejectInventoryNumber string
+}
+
+func (f fakeInspector) Inspect(device domain.IInventoriable, _ int) error {
+	if device.GetInventoryNumber() == f.rejectInventoryNumber {
+		return errInspection
 	}
+	return nil
+}
+
+func newApp(src source.Source, reportOut, statusOut *bytes.Buffer) *console.App {
 	return console.New(
-		fleet.NewService(src, inspector),
+		fleet.NewService(src, fakeInspector{rejectInventoryNumber: "SCOOT-002"}),
 		report.NewConsoleOutput(reportOut),
 		statusOut,
 	)
@@ -38,7 +46,7 @@ func newApp(t *testing.T, src source.Source, reportOut, statusOut *bytes.Buffer)
 
 func TestRunWritesStatusAndReport(t *testing.T) {
 	var reportOut, statusOut bytes.Buffer
-	app := newApp(t, fakeSource{dataset: source.Dataset{
+	app := newApp(fakeSource{dataset: source.Dataset{
 		Registered: []source.DeviceSpec{
 			{Kind: domain.KindScooter, InventoryNumber: "SCOOT-001", DailyConsumptionKWh: 1.5, Condition: 95, EaseOfUse: 8},
 		},
@@ -95,7 +103,7 @@ func TestRunWritesStatusAndReport(t *testing.T) {
 
 func TestRunWritesEmptyInventory(t *testing.T) {
 	var reportOut, statusOut bytes.Buffer
-	if err := newApp(t, fakeSource{}, &reportOut, &statusOut).Run(); err != nil {
+	if err := newApp(fakeSource{}, &reportOut, &statusOut).Run(); err != nil {
 		t.Fatalf("Run() error = %v", err)
 	}
 
@@ -118,7 +126,7 @@ func TestRunWritesEmptyInventory(t *testing.T) {
 }
 
 func TestRunReturnsSourceError(t *testing.T) {
-	err := newApp(t, fakeSource{err: errors.New("source failed")}, &bytes.Buffer{}, &bytes.Buffer{}).Run()
+	err := newApp(fakeSource{err: errors.New("source failed")}, &bytes.Buffer{}, &bytes.Buffer{}).Run()
 	if err == nil || !strings.Contains(err.Error(), "sync inventory") {
 		t.Fatalf("Run() error = %v, want wrapped sync error", err)
 	}
@@ -131,12 +139,8 @@ func (failingOutput) Write(report.Document) error {
 }
 
 func TestRunReturnsReportError(t *testing.T) {
-	inspector, err := inspection.NewInspector(inspection.DefaultMinCondition)
-	if err != nil {
-		t.Fatalf("NewInspector() error = %v", err)
-	}
 	app := console.New(
-		fleet.NewService(fakeSource{}, inspector),
+		fleet.NewService(fakeSource{}, fakeInspector{}),
 		failingOutput{},
 		&bytes.Buffer{},
 	)

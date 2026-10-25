@@ -60,7 +60,7 @@ go vet ./...
 │   ├── source/                   # порт Source, Dataset, DeviceSpec/EquipmentSpec
 │   │   └── textfile/             # адаптер текстового файла
 │   ├── fleet/                    # Sync, Items и подбор для новичков
-│   │   ├── service.go            # сценарий инвентаря
+│   │   ├── service.go            # сценарий инвентаря и порт Inspector
 │   │   └── beginner.go           # BeginnerDevices через ITransport/IConsumptor
 │   ├── report/                   # счёт, документ отчёта и способы вывода
 │   │   ├── report.go             # Counts, Document, Build, Count*
@@ -76,7 +76,8 @@ go vet ./...
 │       ├── 003-device-source-and-inspection.md
 │       ├── 004-beginner-devices.md
 │       ├── 005-itransport-and-inventory.md
-│       └── 006-accounting-and-report.md
+│       ├── 006-accounting-and-report.md
+│       └── 007-inspector-port.md
 ├── PROJECT.md
 ├── PROMPTS.md
 └── ai-usage.md
@@ -91,6 +92,7 @@ go vet ./...
 - [ADR 004](docs/decisions/004-beginner-devices.md) — лёгкость использования и новички (заменён ADR 005).
 - [ADR 005](docs/decisions/005-itransport-and-inventory.md) — отдельный `ITransport`, инвентарь и иерархия вещей.
 - [ADR 006](docs/decisions/006-accounting-and-report.md) — инвентарные номера, категории, счёт и вывод отчёта.
+- [ADR 007](docs/decisions/007-inspector-port.md) — порт `Inspector` и fake/stub техосмотра в тестах.
 - [Журнал промтов](PROMPTS.md) — дословная история запросов.
 - [AI usage](ai-usage.md) — дубликат журнала промтов по требованию заказчика.
 
@@ -111,6 +113,7 @@ go vet ./...
 - [x] Счёт всех вещей, транспорта, самокатов и наколенников.
 - [x] Отчёт со списками техники, транспорта и транспорта для новичков.
 - [x] Вывод отчёта в консоль или файл через интерфейс `report.Output`.
+- [x] Техосмотр через порт `fleet.Inspector`; тесты на fake/stub.
 - [x] Ручной DI-контейнер и тесты.
 - [x] Модернизация по JetBrains Go Guidelines и покрытие 88.9% (>60%).
 - [ ] Другие способы вывода отчёта (JSON, HTTP).
@@ -128,3 +131,4 @@ go vet ./...
 | 2026-10-25 | Выделен `ITransport`; добавлены снаряжение и иерархия вещей инвентаря | [ADR 005](docs/decisions/005-itransport-and-inventory.md) |
 | 2026-10-25 | Добавлены инвентарные номера, категории, счёт и отчёт в консоль/файл | [ADR 006](docs/decisions/006-accounting-and-report.md) |
 | 2026-10-25 | Применены JetBrains Go Guidelines, код упрощён, покрытие 88.9% | — |
+| 2026-10-25 | Техосмотр вынесен за порт `Inspector`; тесты используют fake/stub | [ADR 007](docs/decisions/007-inspector-port.md) |

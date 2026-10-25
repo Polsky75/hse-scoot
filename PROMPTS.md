@@ -52,3 +52,9 @@
 > Используй этот гайдлайн. Обнови программу в соответствии с ним и упрости её по возможности без нарушения принципов SOLID. Покрой тестами больше 60% кода
 
 **Сделано:** применены JetBrains Modern Go Guidelines для Go 1.23 (`slices.Clone`, `strings.CutPrefix`/`CutSuffix`, `slices.ContainsFunc`, `run() error`, `errors.Is`, `any`); упрощён `report.Document` (убрана лишняя обёртка `Section`) и запуск в `main`; `go fix -diff ./...` чист; покрытие — **88.9%** (>60%); обновлены `README.md` и `PROJECT.md`.
+
+## 2026-10-25 18:10 — Проверяй техосмотр через mock/fake/stub
+
+> Проверяй техосмотр через mock/fake/stub
+
+**Сделано:** в `fleet` добавлен порт `Inspector`; `fleet.Service` зависит от интерфейса, конкретный `inspection.Inspector` внедряется в `di`; тесты `fleet` и `console` переведены на `fakeInspector` с записью вызовов и управляемой ошибкой; добавлены проверки, что осматривается только `[incoming]`-транспорт; оформлен [ADR 007](docs/decisions/007-inspector-port.md). Покрытие — **88.9%**.

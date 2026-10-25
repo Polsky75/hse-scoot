@@ -79,7 +79,7 @@ func TestServiceBeginnerDevicesUsesCurrentFleet(t *testing.T) {
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
 			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
 		},
-	}}, newInspector(t))
+	}}, &fakeInspector{})
 
 	if _, err := service.Sync(); err != nil {
 		t.Fatalf("Sync() error = %v", err)

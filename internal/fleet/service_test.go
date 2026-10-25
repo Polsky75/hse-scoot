@@ -7,7 +7,6 @@ import (
 
 	"github.com/Polsky75/hse-scoot/internal/domain"
 	"github.com/Polsky75/hse-scoot/internal/fleet"
-	"github.com/Polsky75/hse-scoot/internal/inspection"
 	"github.com/Polsky75/hse-scoot/internal/source"
 )
 
@@ -20,16 +19,39 @@ func (s fakeSource) Load() (source.Dataset, error) {
 	return s.dataset, s.err
 }
 
-func newInspector(t *testing.T) *inspection.Inspector {
-	t.Helper()
-	inspector, err := inspection.NewInspector(inspection.DefaultMinCondition)
-	if err != nil {
-		t.Fatalf("NewInspector() error = %v", err)
+var errInspection = errors.New("inspection failed")
+
+type inspectCall struct {
+	inventoryNumber string
+	condition       int
+}
+
+// fakeInspector — управляемый тестовый дубль техосмотра.
+type fakeInspector struct {
+	inspect func(domain.IInventoriable, int) error
+	calls   []inspectCall
+}
+
+func (f *fakeInspector) Inspect(device domain.IInventoriable, condition int) error {
+	f.calls = append(f.calls, inspectCall{
+		inventoryNumber: device.GetInventoryNumber(),
+		condition:       condition,
+	})
+	if f.inspect != nil {
+		return f.inspect(device, condition)
 	}
-	return inspector
+	return nil
 }
 
 func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
+	inspector := &fakeInspector{
+		inspect: func(device domain.IInventoriable, _ int) error {
+			if device.GetInventoryNumber() == "SCOOT-002" {
+				return errInspection
+			}
+			return nil
+		},
+	}
 	service := fleet.NewService(fakeSource{dataset: source.Dataset{
 		Registered: []source.DeviceSpec{
 			{Kind: domain.KindScooter, InventoryNumber: "SCOOT-001", DailyConsumptionKWh: 1.5, Condition: 95, EaseOfUse: 8},
@@ -44,7 +66,7 @@ func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
 			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
 		},
-	}}, newInspector(t))
+	}}, inspector)
 
 	results, err := service.Sync()
 	if err != nil {
@@ -60,11 +82,20 @@ func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
 	if results[1].Accepted() {
 		t.Error("SCOOT-002 must be rejected")
 	}
-	if !errors.Is(results[1].Err, inspection.ErrFailed) {
-		t.Errorf("SCOOT-002 error = %v, want %v", results[1].Err, inspection.ErrFailed)
+	if !errors.Is(results[1].Err, errInspection) {
+		t.Errorf("SCOOT-002 error = %v, want %v", results[1].Err, errInspection)
 	}
 	if !results[2].Accepted() {
 		t.Errorf("BIKE-002 must be accepted, got %v", results[2].Err)
+	}
+
+	wantCalls := []inspectCall{
+		{inventoryNumber: "EBIKE-001", condition: 70},
+		{inventoryNumber: "SCOOT-002", condition: 69},
+		{inventoryNumber: "BIKE-002", condition: 80},
+	}
+	if !slices.Equal(inspector.calls, wantCalls) {
+		t.Errorf("inspection calls = %+v, want %+v", inspector.calls, wantCalls)
 	}
 
 	items := service.Items()
@@ -90,17 +121,49 @@ func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
 	}
 }
 
+func TestSyncUsesFakeInspectorOnlyForIncomingTransport(t *testing.T) {
+	inspector := &fakeInspector{}
+	service := fleet.NewService(fakeSource{dataset: source.Dataset{
+		Registered: []source.DeviceSpec{
+			{Kind: domain.KindScooter, InventoryNumber: "SCOOT-001", DailyConsumptionKWh: 1, EaseOfUse: 8},
+		},
+		Equipment: []source.EquipmentSpec{
+			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
+		},
+		Incoming: []source.DeviceSpec{
+			{Kind: domain.KindEBike, InventoryNumber: "EBIKE-001", DailyConsumptionKWh: 2, Condition: 80, EaseOfUse: 7},
+		},
+	}}, inspector)
+
+	results, err := service.Sync()
+	if err != nil {
+		t.Fatalf("Sync() error = %v", err)
+	}
+	if len(results) != 1 || !results[0].Accepted() {
+		t.Fatalf("results = %+v, want one accepted", results)
+	}
+
+	wantCalls := []inspectCall{{inventoryNumber: "EBIKE-001", condition: 80}}
+	if !slices.Equal(inspector.calls, wantCalls) {
+		t.Errorf("inspection calls = %+v, want only incoming EBIKE-001", inspector.calls)
+	}
+}
+
 func TestSyncAddsEquipmentToInventory(t *testing.T) {
+	inspector := &fakeInspector{}
 	service := fleet.NewService(fakeSource{dataset: source.Dataset{
 		Equipment: []source.EquipmentSpec{
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
 			{Kind: domain.KindKneePads, InventoryNumber: "KNEE-001"},
 			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
 		},
-	}}, newInspector(t))
+	}}, inspector)
 
 	if _, err := service.Sync(); err != nil {
 		t.Fatalf("Sync() error = %v", err)
+	}
+	if len(inspector.calls) != 0 {
+		t.Errorf("equipment must not be inspected, calls = %+v", inspector.calls)
 	}
 
 	items := service.Items()
@@ -128,7 +191,8 @@ func TestSyncAddsEquipmentToInventory(t *testing.T) {
 }
 
 func TestSyncHandlesEmptyDataset(t *testing.T) {
-	service := fleet.NewService(fakeSource{}, newInspector(t))
+	inspector := &fakeInspector{}
+	service := fleet.NewService(fakeSource{}, inspector)
 
 	results, err := service.Sync()
 	if err != nil {
@@ -140,25 +204,36 @@ func TestSyncHandlesEmptyDataset(t *testing.T) {
 	if len(service.Items()) != 0 {
 		t.Errorf("inventory is not empty: %+v", service.Items())
 	}
+	if len(inspector.calls) != 0 {
+		t.Errorf("inspection calls = %+v, want none", inspector.calls)
+	}
 }
 
 func TestSyncReturnsSourceError(t *testing.T) {
 	sourceErr := errors.New("source unavailable")
-	service := fleet.NewService(fakeSource{err: sourceErr}, newInspector(t))
+	inspector := &fakeInspector{}
+	service := fleet.NewService(fakeSource{err: sourceErr}, inspector)
 
 	if _, err := service.Sync(); !errors.Is(err, sourceErr) {
 		t.Fatalf("Sync() error = %v, want %v", err, sourceErr)
 	}
+	if len(inspector.calls) != 0 {
+		t.Errorf("inspection calls = %+v, want none", inspector.calls)
+	}
 }
 
 func TestSyncRejectsInvalidRegisteredDevice(t *testing.T) {
+	inspector := &fakeInspector{}
 	service := fleet.NewService(fakeSource{dataset: source.Dataset{
 		Registered: []source.DeviceSpec{
 			{Kind: domain.KindBicycle, InventoryNumber: "BIKE-001", DailyConsumptionKWh: 1, EaseOfUse: 5},
 		},
-	}}, newInspector(t))
+	}}, inspector)
 
 	if _, err := service.Sync(); !errors.Is(err, domain.ErrBicycleConsumption) {
 		t.Fatalf("Sync() error = %v, want %v", err, domain.ErrBicycleConsumption)
+	}
+	if len(inspector.calls) != 0 {
+		t.Errorf("inspection calls = %+v, want none", inspector.calls)
 	}
 }

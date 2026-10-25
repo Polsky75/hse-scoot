@@ -6,9 +6,16 @@ import (
 	"slices"
 
 	"github.com/Polsky75/hse-scoot/internal/domain"
-	"github.com/Polsky75/hse-scoot/internal/inspection"
 	"github.com/Polsky75/hse-scoot/internal/source"
 )
+
+// Inspector проверяет транспорт перед постановкой на учёт.
+//
+// Интерфейс объявлен на стороне потребителя: fleet не зависит от конкретной
+// реализации осмотра, а тесты подставляют fake/stub.
+type Inspector interface {
+	Inspect(domain.IInventoriable, int) error
+}
 
 // RegistrationResult — итог постановки одного транспорта на учёт.
 type RegistrationResult struct {
@@ -29,12 +36,12 @@ func (r RegistrationResult) Accepted() bool {
 // уже стоит на учёте и восстанавливается без повторного осмотра.
 type Service struct {
 	source    source.Source
-	inspector *inspection.Inspector
+	inspector Inspector
 	items     []domain.IInventoriable
 }
 
 // NewService создаёт сервис инвентаря.
-func NewService(src source.Source, inspector *inspection.Inspector) *Service {
+func NewService(src source.Source, inspector Inspector) *Service {
 	return &Service{
 		source:    src,
 		inspector: inspector,
