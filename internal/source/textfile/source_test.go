@@ -31,7 +31,7 @@ ebike EBIKE-001 1.80 42 7
 [equipment]
 helmet HELMET-001
 kneepads KNEE-001
-charging_station STATION-001
+charging_station STATION-001 3.20
 `)
 
 	dataset, err := textfile.New(path).Load()
@@ -65,14 +65,17 @@ charging_station STATION-001
 	wantEquipment := []struct {
 		kind            domain.EquipmentKind
 		inventoryNumber string
+		consumption     float64
 	}{
 		{kind: domain.KindHelmet, inventoryNumber: "HELMET-001"},
 		{kind: domain.KindKneePads, inventoryNumber: "KNEE-001"},
-		{kind: domain.KindChargingStation, inventoryNumber: "STATION-001"},
+		{kind: domain.KindChargingStation, inventoryNumber: "STATION-001", consumption: 3.2},
 	}
 	for i, want := range wantEquipment {
-		if got := dataset.Equipment[i]; got.Kind != want.kind || got.InventoryNumber != want.inventoryNumber {
-			t.Errorf("equipment[%d] = %+v, want %s %s", i, got, want.kind, want.inventoryNumber)
+		got := dataset.Equipment[i]
+		if got.Kind != want.kind || got.InventoryNumber != want.inventoryNumber ||
+			got.DailyConsumptionKWh != want.consumption {
+			t.Errorf("equipment[%d] = %+v, want %s %s %v", i, got, want.kind, want.inventoryNumber, want.consumption)
 		}
 	}
 }
@@ -106,7 +109,32 @@ func TestLoadRejectsInvalidFiles(t *testing.T) {
 		{
 			name:    "wrong equipment field count",
 			content: "[equipment]\nhelmet\n",
+			wantErr: "expected at least 2 fields",
+		},
+		{
+			name:    "charging station without consumption",
+			content: "[equipment]\ncharging_station STATION-001\n",
+			wantErr: "expected 3 fields",
+		},
+		{
+			name:    "helmet with consumption",
+			content: "[equipment]\nhelmet HELMET-001 1\n",
 			wantErr: "expected 2 fields",
+		},
+		{
+			name:    "bad charging station consumption",
+			content: "[equipment]\ncharging_station STATION-001 nope\n",
+			wantErr: "invalid daily consumption",
+		},
+		{
+			name:    "negative charging station consumption",
+			content: "[equipment]\ncharging_station STATION-001 -1\n",
+			wantErr: "non-negative finite number",
+		},
+		{
+			name:    "non-finite charging station consumption",
+			content: "[equipment]\ncharging_station STATION-001 NaN\n",
+			wantErr: "non-negative finite number",
 		},
 		{
 			name:    "unknown transport kind",

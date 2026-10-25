@@ -38,7 +38,9 @@ func TestNewEquipmentCreatesSupportedKinds(t *testing.T) {
 	tests := []struct {
 		kind            domain.EquipmentKind
 		inventoryNumber string
+		consumption     float64
 		wantCategory    domain.ItemCategory
+		wantConsumptor  bool
 	}{
 		{
 			kind: domain.KindHelmet, inventoryNumber: "HELMET-001",
@@ -50,13 +52,14 @@ func TestNewEquipmentCreatesSupportedKinds(t *testing.T) {
 		},
 		{
 			kind: domain.KindChargingStation, inventoryNumber: "STATION-001",
-			wantCategory: domain.CategoryChargingStation,
+			consumption: 3.2, wantCategory: domain.CategoryChargingStation,
+			wantConsumptor: true,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(string(test.kind), func(t *testing.T) {
-			item, err := domain.NewEquipment(test.kind, test.inventoryNumber)
+			item, err := domain.NewEquipment(test.kind, test.inventoryNumber, test.consumption)
 			if err != nil {
 				t.Fatalf("NewEquipment() error = %v", err)
 			}
@@ -83,18 +86,60 @@ func TestNewEquipmentCreatesSupportedKinds(t *testing.T) {
 			if _, ok := item.(domain.ITransport); ok {
 				t.Error("equipment must not implement ITransport")
 			}
-			if _, ok := item.(domain.IConsumptor); ok {
-				t.Error("equipment must not implement IConsumptor")
+
+			consumer, ok := item.(domain.IConsumptor)
+			if ok != test.wantConsumptor {
+				t.Fatalf("equipment implements IConsumptor = %v, want %v", ok, test.wantConsumptor)
+			}
+			if ok && consumer.GetDailyConsumptionKWh() != test.consumption {
+				t.Errorf(
+					"GetDailyConsumptionKWh() = %v, want %v",
+					consumer.GetDailyConsumptionKWh(), test.consumption,
+				)
 			}
 		})
 	}
 }
 
 func TestNewEquipmentRejectsInvalidData(t *testing.T) {
-	if _, err := domain.NewEquipment(domain.KindHelmet, "  "); !errors.Is(err, domain.ErrEmptyInventoryNumber) {
-		t.Errorf("empty inventory number error = %v, want %v", err, domain.ErrEmptyInventoryNumber)
+	tests := []struct {
+		name            string
+		kind            domain.EquipmentKind
+		inventoryNumber string
+		consumption     float64
+		wantErr         error
+	}{
+		{
+			name: "empty inventory number", kind: domain.KindHelmet,
+			inventoryNumber: "  ", wantErr: domain.ErrEmptyInventoryNumber,
+		},
+		{
+			name: "unknown kind", kind: "jacket",
+			inventoryNumber: "JACKET-001", wantErr: domain.ErrUnknownEquipmentKind,
+		},
+		{
+			name: "helmet with consumption", kind: domain.KindHelmet,
+			inventoryNumber: "HELMET-001", consumption: 1,
+			wantErr: domain.ErrEquipmentConsumption,
+		},
+		{
+			name: "kneepads with consumption", kind: domain.KindKneePads,
+			inventoryNumber: "KNEE-001", consumption: 1,
+			wantErr: domain.ErrEquipmentConsumption,
+		},
+		{
+			name: "negative station consumption", kind: domain.KindChargingStation,
+			inventoryNumber: "STATION-001", consumption: -0.1,
+			wantErr: domain.ErrNegativeConsumption,
+		},
 	}
-	if _, err := domain.NewEquipment("jacket", "JACKET-001"); !errors.Is(err, domain.ErrUnknownEquipmentKind) {
-		t.Errorf("unknown kind error = %v, want %v", err, domain.ErrUnknownEquipmentKind)
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			_, err := domain.NewEquipment(test.kind, test.inventoryNumber, test.consumption)
+			if !errors.Is(err, test.wantErr) {
+				t.Fatalf("NewEquipment() error = %v, want %v", err, test.wantErr)
+			}
+		})
 	}
 }

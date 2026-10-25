@@ -16,6 +16,8 @@ const (
 var (
 	// ErrEmptyInventoryNumber возвращается, если инвентарный номер пуст.
 	ErrEmptyInventoryNumber = errors.New("inventory number must not be empty")
+	// ErrInvalidInventoryNumber возвращается для недопустимых символов номера.
+	ErrInvalidInventoryNumber = errors.New("inventory number may contain only uppercase letters, digits and dashes")
 	// ErrEmptyCategory возвращается, если категория вещи не задана.
 	ErrEmptyCategory = errors.New("item category must not be empty")
 	// ErrNegativeConsumption возвращается при отрицательном суточном расходе.
@@ -30,10 +32,25 @@ type inventoryItem struct {
 	category        ItemCategory
 }
 
+// ValidateInventoryNumber проверяет, что номер состоит только из заглавных
+// латинских букв, цифр и тире.
+func ValidateInventoryNumber(inventoryNumber string) error {
+	if inventoryNumber == "" {
+		return ErrEmptyInventoryNumber
+	}
+	for _, r := range inventoryNumber {
+		if (r >= 'A' && r <= 'Z') || (r >= '0' && r <= '9') || r == '-' {
+			continue
+		}
+		return ErrInvalidInventoryNumber
+	}
+	return nil
+}
+
 func newInventoryItem(inventoryNumber string, category ItemCategory) (inventoryItem, error) {
 	inventoryNumber = strings.TrimSpace(inventoryNumber)
-	if inventoryNumber == "" {
-		return inventoryItem{}, ErrEmptyInventoryNumber
+	if err := ValidateInventoryNumber(inventoryNumber); err != nil {
+		return inventoryItem{}, err
 	}
 	if category == "" {
 		return inventoryItem{}, ErrEmptyCategory

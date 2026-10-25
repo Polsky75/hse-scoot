@@ -32,6 +32,11 @@ func run() error {
 		"report.txt",
 		"путь к файлу отчёта при -report=file",
 	)
+	interactiveMode := flag.Bool(
+		"interactive",
+		false,
+		"вводить данные в консоли без файла",
+	)
 	flag.Parse()
 
 	output, err := report.NewOutput(*reportTarget, *reportPath, os.Stdout)
@@ -44,5 +49,8 @@ func run() error {
 		return err
 	}
 
+	if *interactiveMode {
+		return container.RunInteractive(os.Stdin)
+	}
 	return container.Run()
 }

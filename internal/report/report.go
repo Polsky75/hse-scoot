@@ -8,6 +8,7 @@ import "github.com/Polsky75/hse-scoot/internal/domain"
 type Counts struct {
 	Total                    int
 	Transport                int
+	Equipment                int
 	Scooters                 int
 	KneePads                 int
 	TotalDailyConsumptionKWh float64
@@ -34,6 +35,7 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 		Counts: Counts{
 			Total:                    CountAll(items),
 			Transport:                CountTransport(items),
+			Equipment:                CountEquipment(items),
 			Scooters:                 CountCategory(items, domain.CategoryScooter),
 			KneePads:                 CountCategory(items, domain.CategoryKneePads),
 			TotalDailyConsumptionKWh: CountDailyConsumptionKWh(items),
@@ -69,6 +71,17 @@ func CountTransport(items []domain.IInventoriable) int {
 	var count int
 	for _, item := range items {
 		if _, ok := item.(domain.ITransport); ok {
+			count++
+		}
+	}
+	return count
+}
+
+// CountEquipment возвращает количество вещей, не являющихся транспортом.
+func CountEquipment(items []domain.IInventoriable) int {
+	var count int
+	for _, item := range items {
+		if _, ok := item.(domain.ITransport); !ok {
 			count++
 		}
 	}

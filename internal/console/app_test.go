@@ -58,7 +58,7 @@ func TestRunWritesStatusAndReport(t *testing.T) {
 		Equipment: []source.EquipmentSpec{
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
 			{Kind: domain.KindKneePads, InventoryNumber: "KNEE-001"},
-			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
+			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001", DailyConsumptionKWh: 3.2},
 		},
 	}}, &reportOut, &statusOut)
 
@@ -85,9 +85,10 @@ func TestRunWritesStatusAndReport(t *testing.T) {
 		"hse-scoot — отчёт по инвентарю",
 		"Всего вещей на учёте: 6",
 		"Транспорт: 3",
+		"Оборудование: 3",
 		"Самокаты: 1",
 		"Наколенники: 1",
-		"Суммарное суточное потребление: 3.50 кВт·ч",
+		"Суммарное суточное потребление: 6.70 кВт·ч",
 		"Всё оборудование (3):",
 		"Транспорт (3):",
 		"Транспорт для новичков (1):",
@@ -113,11 +114,15 @@ func TestRunWritesEmptyInventory(t *testing.T) {
 	}
 
 	reportText := reportOut.String()
+	for _, unwanted := range []string{"Самокаты: 0", "Наколенники: 0"} {
+		if strings.Contains(reportText, unwanted) {
+			t.Errorf("report contains zero category line %q:\n%s", unwanted, reportText)
+		}
+	}
 	for _, want := range []string{
 		"Всего вещей на учёте: 0",
 		"Транспорт: 0",
-		"Самокаты: 0",
-		"Наколенники: 0",
+		"Оборудование: 0",
 		"Суммарное суточное потребление: 0.00 кВт·ч",
 		"Всё оборудование (0):",
 	} {

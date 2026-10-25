@@ -11,6 +11,7 @@ import (
 	"github.com/Polsky75/hse-scoot/internal/console"
 	"github.com/Polsky75/hse-scoot/internal/fleet"
 	"github.com/Polsky75/hse-scoot/internal/inspection"
+	"github.com/Polsky75/hse-scoot/internal/interactive"
 	"github.com/Polsky75/hse-scoot/internal/report"
 	"github.com/Polsky75/hse-scoot/internal/source"
 	"github.com/Polsky75/hse-scoot/internal/source/textfile"
@@ -18,7 +19,8 @@ import (
 
 // Container хранит собранный граф зависимостей.
 type Container struct {
-	app *console.App
+	file        *console.App
+	interactive *interactive.App
 }
 
 // New собирает приложение с текстовым источником инвентаря.
@@ -45,12 +47,19 @@ func NewWithSource(
 		output = report.NewConsoleOutput(out)
 	}
 
+	service := fleet.NewService(src, inspector)
 	return &Container{
-		app: console.New(fleet.NewService(src, inspector), output, out),
+		file:        console.New(service, output, out),
+		interactive: interactive.New(service, output, out),
 	}, nil
 }
 
-// Run запускает приложение.
+// Run запускает файловый сценарий.
 func (c *Container) Run() error {
-	return c.app.Run()
+	return c.file.Run()
+}
+
+// RunInteractive запускает интерактивный ввод.
+func (c *Container) RunInteractive(in io.Reader) error {
+	return c.interactive.Run(in)
 }

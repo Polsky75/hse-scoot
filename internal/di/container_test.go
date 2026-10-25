@@ -33,7 +33,7 @@ bicycle BIKE-001 0.00 90 9
 [equipment]
 helmet HELMET-001
 kneepads KNEE-001
-charging_station STATION-001
+charging_station STATION-001 3.20
 `
 	if err := os.WriteFile(path, []byte(content), 0o600); err != nil {
 		t.Fatalf("WriteFile() error = %v", err)
@@ -56,9 +56,10 @@ charging_station STATION-001
 		"hse-scoot — отчёт по инвентарю",
 		"Всего вещей на учёте: 6",
 		"Транспорт: 3",
+		"Оборудование: 3",
 		"Самокаты: 1",
 		"Наколенники: 1",
-		"Суммарное суточное потребление: 3.25 кВт·ч",
+		"Суммарное суточное потребление: 6.45 кВт·ч",
 		"Всё оборудование (3):",
 		"Транспорт (3):",
 		"Транспорт для новичков (3):",
@@ -116,6 +117,23 @@ func TestNewWithFileOutput(t *testing.T) {
 	}
 	if !strings.Contains(notice.String(), reportPath) {
 		t.Errorf("notice = %q, want path %q", notice.String(), reportPath)
+	}
+}
+
+func TestRunInteractive(t *testing.T) {
+	var out bytes.Buffer
+	container, err := di.NewWithSource(&out, fakeSource{}, 70, report.NewConsoleOutput(&out))
+	if err != nil {
+		t.Fatalf("NewWithSource() error = %v", err)
+	}
+	if err := container.RunInteractive(strings.NewReader("0\n")); err != nil {
+		t.Fatalf("RunInteractive() error = %v", err)
+	}
+	text := out.String()
+	for _, want := range []string{"Интерактивный режим", "Всего вещей на учёте: 0"} {
+		if !strings.Contains(text, want) {
+			t.Errorf("output does not contain %q:\n%s", want, text)
+		}
 	}
 }
 

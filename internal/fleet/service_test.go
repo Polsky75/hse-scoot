@@ -64,7 +64,7 @@ func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
 		},
 		Equipment: []source.EquipmentSpec{
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
-			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
+			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001", DailyConsumptionKWh: 3.2},
 		},
 	}}, inspector)
 
@@ -155,7 +155,7 @@ func TestSyncAddsEquipmentToInventory(t *testing.T) {
 		Equipment: []source.EquipmentSpec{
 			{Kind: domain.KindHelmet, InventoryNumber: "HELMET-001"},
 			{Kind: domain.KindKneePads, InventoryNumber: "KNEE-001"},
-			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001"},
+			{Kind: domain.KindChargingStation, InventoryNumber: "STATION-001", DailyConsumptionKWh: 3.2},
 		},
 	}}, inspector)
 
@@ -232,6 +232,32 @@ func TestSyncRejectsInvalidRegisteredDevice(t *testing.T) {
 
 	if _, err := service.Sync(); !errors.Is(err, domain.ErrBicycleConsumption) {
 		t.Fatalf("Sync() error = %v, want %v", err, domain.ErrBicycleConsumption)
+	}
+	if len(inspector.calls) != 0 {
+		t.Errorf("inspection calls = %+v, want none", inspector.calls)
+	}
+}
+
+func TestSyncRejectsInvalidInventoryNumber(t *testing.T) {
+	inspector := &fakeInspector{}
+	service := fleet.NewService(fakeSource{dataset: source.Dataset{
+		Incoming: []source.DeviceSpec{
+			{Kind: domain.KindScooter, InventoryNumber: "scoot-001", DailyConsumptionKWh: 1, Condition: 90, EaseOfUse: 5},
+		},
+	}}, inspector)
+
+	results, err := service.Sync()
+	if err != nil {
+		t.Fatalf("Sync() error = %v", err)
+	}
+	if len(results) != 1 {
+		t.Fatalf("results = %d, want 1", len(results))
+	}
+	if results[0].Accepted() {
+		t.Fatal("invalid inventory number must be rejected")
+	}
+	if !errors.Is(results[0].Err, domain.ErrInvalidInventoryNumber) {
+		t.Errorf("error = %v, want %v", results[0].Err, domain.ErrInvalidInventoryNumber)
 	}
 	if len(inspector.calls) != 0 {
 		t.Errorf("inspection calls = %+v, want none", inspector.calls)

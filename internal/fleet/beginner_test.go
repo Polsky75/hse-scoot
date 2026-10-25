@@ -19,7 +19,7 @@ func newTransport(t *testing.T, kind domain.TransportKind, inventoryNumber strin
 
 func newEquipment(t *testing.T, kind domain.EquipmentKind, inventoryNumber string) domain.IInventoriable {
 	t.Helper()
-	item, err := domain.NewEquipment(kind, inventoryNumber)
+	item, err := domain.NewEquipment(kind, inventoryNumber, 0)
 	if err != nil {
 		t.Fatalf("NewEquipment(%s) error = %v", inventoryNumber, err)
 	}

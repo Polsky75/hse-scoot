@@ -17,8 +17,9 @@ type DeviceSpec struct {
 
 // EquipmentSpec — описание снаряжения во входных данных.
 type EquipmentSpec struct {
-	Kind            domain.EquipmentKind
-	InventoryNumber string
+	Kind                domain.EquipmentKind
+	InventoryNumber     string
+	DailyConsumptionKWh float64
 }
 
 // Dataset — начальный парк, новые устройства и снаряжение.

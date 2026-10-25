@@ -119,9 +119,9 @@ func registerInventoryNumber(seen map[string]int, inventoryNumber string, lineNu
 
 func parseEquipmentSpec(line string) (source.EquipmentSpec, error) {
 	fields := strings.Fields(line)
-	if len(fields) != 2 {
+	if len(fields) < 2 {
 		return source.EquipmentSpec{}, fmt.Errorf(
-			"expected 2 fields (kind, inventory_number), got %d", len(fields),
+			"expected at least 2 fields (kind, inventory_number), got %d", len(fields),
 		)
 	}
 
@@ -130,10 +130,37 @@ func parseEquipmentSpec(line string) (source.EquipmentSpec, error) {
 		return source.EquipmentSpec{}, err
 	}
 
-	return source.EquipmentSpec{
+	spec := source.EquipmentSpec{
 		Kind:            kind,
 		InventoryNumber: fields[1],
-	}, nil
+	}
+	if kind != domain.KindChargingStation {
+		if len(fields) != 2 {
+			return source.EquipmentSpec{}, fmt.Errorf(
+				"expected 2 fields (kind, inventory_number) for %s, got %d",
+				kind, len(fields),
+			)
+		}
+		return spec, nil
+	}
+
+	if len(fields) != 3 {
+		return source.EquipmentSpec{}, fmt.Errorf(
+			"expected 3 fields (kind, inventory_number, daily_consumption_kwh) for %s, got %d",
+			kind, len(fields),
+		)
+	}
+	consumption, err := strconv.ParseFloat(fields[2], 64)
+	if err != nil {
+		return source.EquipmentSpec{}, fmt.Errorf("invalid daily consumption %q: %w", fields[2], err)
+	}
+	if math.IsNaN(consumption) || math.IsInf(consumption, 0) || consumption < 0 {
+		return source.EquipmentSpec{}, fmt.Errorf(
+			"daily consumption must be a non-negative finite number, got %q", fields[2],
+		)
+	}
+	spec.DailyConsumptionKWh = consumption
+	return spec, nil
 }
 
 func parseDeviceSpec(line string) (source.DeviceSpec, error) {

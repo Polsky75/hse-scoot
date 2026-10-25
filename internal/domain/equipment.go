@@ -15,8 +15,12 @@ const (
 	KindChargingStation EquipmentKind = "charging_station"
 )
 
-// ErrUnknownEquipmentKind возвращается для неподдерживаемого вида снаряжения.
-var ErrUnknownEquipmentKind = errors.New("unknown equipment kind")
+var (
+	// ErrUnknownEquipmentKind возвращается для неподдерживаемого вида снаряжения.
+	ErrUnknownEquipmentKind = errors.New("unknown equipment kind")
+	// ErrEquipmentConsumption возвращается, если расход задан не зарядной станции.
+	ErrEquipmentConsumption = errors.New("only charging station may consume electricity")
+)
 
 // ParseEquipmentKind разбирает вид снаряжения из текстового представления.
 func ParseEquipmentKind(value string) (EquipmentKind, error) {
@@ -35,14 +39,26 @@ func (k EquipmentKind) String() string {
 }
 
 // NewEquipment создаёт вещь инвентаря, не являющуюся транспортом.
-func NewEquipment(kind EquipmentKind, inventoryNumber string) (IInventoriable, error) {
+//
+// Расход энергии допустим только для зарядной станции.
+func NewEquipment(
+	kind EquipmentKind,
+	inventoryNumber string,
+	dailyConsumptionKWh float64,
+) (IInventoriable, error) {
 	switch kind {
 	case KindHelmet:
+		if dailyConsumptionKWh != 0 {
+			return nil, fmt.Errorf("%w: %q", ErrEquipmentConsumption, inventoryNumber)
+		}
 		return NewHelmet(inventoryNumber)
 	case KindKneePads:
+		if dailyConsumptionKWh != 0 {
+			return nil, fmt.Errorf("%w: %q", ErrEquipmentConsumption, inventoryNumber)
+		}
 		return NewKneePads(inventoryNumber)
 	case KindChargingStation:
-		return NewChargingStation(inventoryNumber)
+		return NewChargingStation(inventoryNumber, dailyConsumptionKWh)
 	default:
 		return nil, fmt.Errorf("%w: %q", ErrUnknownEquipmentKind, kind)
 	}
@@ -95,17 +111,33 @@ func NewKneePads(inventoryNumber string) (*KneePads, error) {
 var _ IInventoriable = (*KneePads)(nil)
 
 // ChargingStation — зарядная станция.
+//
+// Числится на балансе и потребляет электроэнергию.
 type ChargingStation struct {
 	equipmentItem
+	dailyConsumptionKWh float64
 }
 
 // NewChargingStation создаёт зарядную станцию.
-func NewChargingStation(inventoryNumber string) (*ChargingStation, error) {
+func NewChargingStation(inventoryNumber string, dailyConsumptionKWh float64) (*ChargingStation, error) {
 	item, err := newEquipmentItem(inventoryNumber, CategoryChargingStation)
 	if err != nil {
 		return nil, err
 	}
-	return &ChargingStation{equipmentItem: item}, nil
+	if dailyConsumptionKWh < 0 {
+		return nil, fmt.Errorf("%w: %g", ErrNegativeConsumption, dailyConsumptionKWh)
+	}
+	return &ChargingStation{
+		equipmentItem:       item,
+		dailyConsumptionKWh: dailyConsumptionKWh,
+	}, nil
 }
 
-var _ IInventoriable = (*ChargingStation)(nil)
+func (c *ChargingStation) GetDailyConsumptionKWh() float64 {
+	return c.dailyConsumptionKWh
+}
+
+var (
+	_ IInventoriable = (*ChargingStation)(nil)
+	_ IConsumptor    = (*ChargingStation)(nil)
+)

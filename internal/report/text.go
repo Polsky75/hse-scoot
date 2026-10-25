@@ -12,8 +12,13 @@ func RenderText(document Document) string {
 	out.WriteString("hse-scoot — отчёт по инвентарю\n\n")
 	fmt.Fprintf(&out, "Всего вещей на учёте: %d\n", document.Counts.Total)
 	fmt.Fprintf(&out, "Транспорт: %d\n", document.Counts.Transport)
-	fmt.Fprintf(&out, "Самокаты: %d\n", document.Counts.Scooters)
-	fmt.Fprintf(&out, "Наколенники: %d\n", document.Counts.KneePads)
+	fmt.Fprintf(&out, "Оборудование: %d\n", document.Counts.Equipment)
+	if document.Counts.Scooters > 0 {
+		fmt.Fprintf(&out, "Самокаты: %d\n", document.Counts.Scooters)
+	}
+	if document.Counts.KneePads > 0 {
+		fmt.Fprintf(&out, "Наколенники: %d\n", document.Counts.KneePads)
+	}
 	fmt.Fprintf(&out, "Суммарное суточное потребление: %.2f кВт·ч\n", document.Counts.TotalDailyConsumptionKWh)
 
 	writeSection(&out, "Всё оборудование", document.Equipment)

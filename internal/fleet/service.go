@@ -71,7 +71,7 @@ func (s *Service) Sync() ([]RegistrationResult, error) {
 
 	// Шлемы, наколенники и зарядные станции — вещи инвентаря, не транспорт.
 	for _, spec := range dataset.Equipment {
-		item, err := domain.NewEquipment(spec.Kind, spec.InventoryNumber)
+		item, err := domain.NewEquipment(spec.Kind, spec.InventoryNumber, spec.DailyConsumptionKWh)
 		if err != nil {
 			return nil, fmt.Errorf("restore equipment %q: %w", spec.InventoryNumber, err)
 		}
@@ -90,6 +90,23 @@ func (s *Service) Items() []domain.IInventoriable {
 	return slices.Clone(s.items)
 }
 
+// AddRegistered добавляет вещь, уже стоящую на учёте.
+//
+// Для транспорта техосмотр не повторяется, для оборудования заявка
+// принимается сразу.
+func (s *Service) AddRegistered(item domain.IInventoriable) {
+	s.add(item)
+}
+
+// RegisterTransport проводит техосмотр и добавляет транспорт на учёт.
+func (s *Service) RegisterTransport(transport domain.ITransport, condition int) error {
+	if err := s.inspector.Inspect(transport, condition); err != nil {
+		return err
+	}
+	s.add(transport)
+	return nil
+}
+
 func (s *Service) register(spec source.DeviceSpec) RegistrationResult {
 	result := RegistrationResult{
 		Kind:            spec.Kind,
@@ -106,12 +123,10 @@ func (s *Service) register(spec source.DeviceSpec) RegistrationResult {
 		result.Err = err
 		return result
 	}
-	if err := s.inspector.Inspect(device, spec.Condition); err != nil {
+	if err := s.RegisterTransport(device, spec.Condition); err != nil {
 		result.Err = err
 		return result
 	}
-
-	s.add(device)
 	return result
 }
 
