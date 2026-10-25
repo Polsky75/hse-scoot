@@ -31,6 +31,28 @@ func equipment(t *testing.T, kind domain.EquipmentKind, number string, consumpti
 	return value
 }
 
+func assertCounts(t *testing.T, got, want report.Counts) {
+	t.Helper()
+	if got.Total != want.Total {
+		t.Errorf("Total = %d, want %d", got.Total, want.Total)
+	}
+	if got.Transport != want.Transport {
+		t.Errorf("Transport = %d, want %d", got.Transport, want.Transport)
+	}
+	if got.Equipment != want.Equipment {
+		t.Errorf("Equipment = %d, want %d", got.Equipment, want.Equipment)
+	}
+	if !slices.Equal(got.Categories, want.Categories) {
+		t.Errorf("Categories = %+v, want %+v", got.Categories, want.Categories)
+	}
+	if got.TotalDailyConsumptionKWh != want.TotalDailyConsumptionKWh {
+		t.Errorf(
+			"TotalDailyConsumptionKWh = %v, want %v",
+			got.TotalDailyConsumptionKWh, want.TotalDailyConsumptionKWh,
+		)
+	}
+}
+
 func testInventory(t *testing.T) ([]domain.IInventoriable, []domain.IInventoriable) {
 	t.Helper()
 	beginner := []domain.IInventoriable{
@@ -53,16 +75,21 @@ func TestBuildCountsAndSections(t *testing.T) {
 	document := report.Build(items, beginner)
 
 	wantCounts := report.Counts{
-		Total:                    7,
-		Transport:                4,
-		Equipment:                3,
-		Scooters:                 2,
-		KneePads:                 1,
+		Total:     7,
+		Transport: 4,
+		Equipment: 3,
+		Categories: []report.CategoryCount{
+			{Category: domain.CategoryScooter, Count: 2},
+			{Category: domain.CategoryBicycle, Count: 1},
+			{Category: domain.CategoryEBike, Count: 1},
+			{Category: domain.CategoryHelmet, Count: 1},
+			{Category: domain.CategoryKneePads, Count: 1},
+			{Category: domain.CategoryChargingStation, Count: 1},
+		},
 		TotalDailyConsumptionKWh: 5,
 	}
-	if got := document.Counts; got != wantCounts {
-		t.Errorf("counts = %+v, want %+v", got, wantCounts)
-	}
+	assertCounts(t, document.Counts, wantCounts)
+
 	if len(document.Equipment) != 3 {
 		t.Fatalf("equipment = %d, want 3", len(document.Equipment))
 	}
@@ -99,11 +126,28 @@ func TestCountFunctions(t *testing.T) {
 	if got := report.CountCategory(items, domain.CategoryScooter); got != 2 {
 		t.Errorf("CountCategory(scooter) = %d, want 2", got)
 	}
+	if got := report.CountCategory(items, domain.CategoryBicycle); got != 1 {
+		t.Errorf("CountCategory(bicycle) = %d, want 1", got)
+	}
+	if got := report.CountCategory(items, domain.CategoryEBike); got != 1 {
+		t.Errorf("CountCategory(ebike) = %d, want 1", got)
+	}
 	if got := report.CountCategory(items, domain.CategoryKneePads); got != 1 {
 		t.Errorf("CountCategory(kneepads) = %d, want 1", got)
 	}
 	if got := report.CountCategory(items, domain.CategoryHelmet); got != 1 {
 		t.Errorf("CountCategory(helmet) = %d, want 1", got)
+	}
+	wantCategories := []report.CategoryCount{
+		{Category: domain.CategoryScooter, Count: 2},
+		{Category: domain.CategoryBicycle, Count: 1},
+		{Category: domain.CategoryEBike, Count: 1},
+		{Category: domain.CategoryHelmet, Count: 1},
+		{Category: domain.CategoryKneePads, Count: 1},
+		{Category: domain.CategoryChargingStation, Count: 1},
+	}
+	if got := report.CountCategories(items); !slices.Equal(got, wantCategories) {
+		t.Errorf("CountCategories() = %+v, want %+v", got, wantCategories)
 	}
 	if got := report.CountDailyConsumptionKWh(items); got != 5 {
 		t.Errorf("CountDailyConsumptionKWh() = %v, want 5", got)
@@ -120,7 +164,11 @@ func TestRenderTextContainsCountsAndCategories(t *testing.T) {
 		"Транспорт: 4",
 		"Оборудование: 3",
 		"Самокаты: 2",
+		"Велосипеды: 1",
+		"Электровелосипеды: 1",
+		"Шлемы: 1",
 		"Наколенники: 1",
+		"Зарядные станции: 1",
 		"Суммарное суточное потребление: 5.00 кВт·ч",
 		"Всё оборудование (3):",
 		"Транспорт (4):",
@@ -150,16 +198,54 @@ func TestChargingStationCountedAsEquipment(t *testing.T) {
 	if len(document.Equipment) != 1 || len(document.Transport) != 0 {
 		t.Errorf("equipment/transport lists = %d/%d, want 1/0", len(document.Equipment), len(document.Transport))
 	}
+	wantCategories := []report.CategoryCount{
+		{Category: domain.CategoryChargingStation, Count: 1},
+	}
+	if !slices.Equal(document.Counts.Categories, wantCategories) {
+		t.Errorf("categories = %+v, want %+v", document.Counts.Categories, wantCategories)
+	}
 
 	text := report.RenderText(document)
-	for _, want := range []string{"Оборудование: 1", "STATION-001 — зарядная станция"} {
+	for _, want := range []string{"Оборудование: 1", "Зарядные станции: 1", "STATION-001 — зарядная станция"} {
 		if !strings.Contains(text, want) {
 			t.Errorf("text does not contain %q:\n%s", want, text)
 		}
 	}
-	for _, unwanted := range []string{"Наколенники: 0", "Самокаты: 0"} {
+	for _, unwanted := range []string{
+		"Наколенники: 0", "Самокаты: 0", "Велосипеды: 0",
+		"Электровелосипеды: 0", "Шлемы: 0",
+	} {
 		if strings.Contains(text, unwanted) {
 			t.Errorf("text contains zero category line %q:\n%s", unwanted, text)
 		}
+	}
+}
+
+type customItem struct {
+	number   string
+	category domain.ItemCategory
+}
+
+func (i customItem) GetInventoryNumber() string       { return i.number }
+func (i customItem) GetCategory() domain.ItemCategory { return i.category }
+
+func TestNewCategoryAppearsInStatisticsWithoutReportChanges(t *testing.T) {
+	const category domain.ItemCategory = "cargo_bike"
+	items := []domain.IInventoriable{
+		customItem{number: "CARGO-001", category: category},
+	}
+
+	document := report.Build(items, nil)
+	wantCategories := []report.CategoryCount{{Category: category, Count: 1}}
+	if !slices.Equal(document.Counts.Categories, wantCategories) {
+		t.Errorf("categories = %+v, want %+v", document.Counts.Categories, wantCategories)
+	}
+	if document.Counts.Equipment != 1 || document.Counts.Transport != 0 {
+		t.Errorf("counts = %+v, want equipment=1 transport=0", document.Counts)
+	}
+
+	text := report.RenderText(document)
+	if !strings.Contains(text, "cargo_bike: 1") {
+		t.Errorf("text does not contain new category count:\n%s", text)
 	}
 }

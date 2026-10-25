@@ -87,7 +87,11 @@ func TestRunWritesStatusAndReport(t *testing.T) {
 		"Транспорт: 3",
 		"Оборудование: 3",
 		"Самокаты: 1",
+		"Велосипеды: 1",
+		"Электровелосипеды: 1",
+		"Шлемы: 1",
 		"Наколенники: 1",
+		"Зарядные станции: 1",
 		"Суммарное суточное потребление: 6.70 кВт·ч",
 		"Всё оборудование (3):",
 		"Транспорт (3):",
@@ -114,7 +118,10 @@ func TestRunWritesEmptyInventory(t *testing.T) {
 	}
 
 	reportText := reportOut.String()
-	for _, unwanted := range []string{"Самокаты: 0", "Наколенники: 0"} {
+	for _, unwanted := range []string{
+		"Самокаты: 0", "Велосипеды: 0", "Электровелосипеды: 0",
+		"Шлемы: 0", "Наколенники: 0", "Зарядные станции: 0",
+	} {
 		if strings.Contains(reportText, unwanted) {
 			t.Errorf("report contains zero category line %q:\n%s", unwanted, reportText)
 		}

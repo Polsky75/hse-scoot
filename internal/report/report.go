@@ -4,13 +4,21 @@ package report
 
 import "github.com/Polsky75/hse-scoot/internal/domain"
 
+// CategoryCount — количество вещей одной категории.
+type CategoryCount struct {
+	Category domain.ItemCategory
+	Count    int
+}
+
 // Counts — счёт вещей на учёте.
+//
+// Categories хранит разбивку по всем категориям в порядке первого
+// появления в инвентаре, поэтому новые виды не требуют правок отчёта.
 type Counts struct {
 	Total                    int
 	Transport                int
 	Equipment                int
-	Scooters                 int
-	KneePads                 int
+	Categories               []CategoryCount
 	TotalDailyConsumptionKWh float64
 }
 
@@ -36,8 +44,7 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 			Total:                    CountAll(items),
 			Transport:                CountTransport(items),
 			Equipment:                CountEquipment(items),
-			Scooters:                 CountCategory(items, domain.CategoryScooter),
-			KneePads:                 CountCategory(items, domain.CategoryKneePads),
+			Categories:               CountCategories(items),
 			TotalDailyConsumptionKWh: CountDailyConsumptionKWh(items),
 		},
 	}
@@ -86,6 +93,26 @@ func CountEquipment(items []domain.IInventoriable) int {
 		}
 	}
 	return count
+}
+
+// CountCategories возвращает количество вещей по категориям в порядке
+// первого появления. Отчёт не знает конкретных видов вещей.
+func CountCategories(items []domain.IInventoriable) []CategoryCount {
+	counts := make(map[domain.ItemCategory]int, len(items))
+	order := make([]domain.ItemCategory, 0, len(items))
+	for _, item := range items {
+		category := item.GetCategory()
+		if _, exists := counts[category]; !exists {
+			order = append(order, category)
+		}
+		counts[category]++
+	}
+
+	result := make([]CategoryCount, 0, len(order))
+	for _, category := range order {
+		result = append(result, CategoryCount{Category: category, Count: counts[category]})
+	}
+	return result
 }
 
 // CountDailyConsumptionKWh возвращает суммарный суточный расход всех

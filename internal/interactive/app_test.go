@@ -163,6 +163,7 @@ func TestInteractiveAcceptsEquipmentApplication(t *testing.T) {
 		"Заявка принята. Присвоен номер: STATION-001 — зарядная станция",
 		"Всего вещей на учёте: 1",
 		"Оборудование: 1",
+		"Зарядные станции: 1",
 		"Суммарное суточное потребление: 3.20 кВт·ч",
 	} {
 		if !strings.Contains(text, want) {

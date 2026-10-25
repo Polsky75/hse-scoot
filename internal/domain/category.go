@@ -17,6 +17,26 @@ func (c ItemCategory) String() string {
 	return string(c)
 }
 
+// LabelPlural возвращает название категории для статистики.
+func (c ItemCategory) LabelPlural() string {
+	switch c {
+	case CategoryScooter:
+		return "Самокаты"
+	case CategoryBicycle:
+		return "Велосипеды"
+	case CategoryEBike:
+		return "Электровелосипеды"
+	case CategoryHelmet:
+		return "Шлемы"
+	case CategoryKneePads:
+		return "Наколенники"
+	case CategoryChargingStation:
+		return "Зарядные станции"
+	default:
+		return string(c)
+	}
+}
+
 // Label возвращает человекочитаемое название категории.
 func (c ItemCategory) Label() string {
 	switch c {
