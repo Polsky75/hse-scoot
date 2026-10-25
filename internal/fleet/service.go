@@ -3,6 +3,7 @@ package fleet
 
 import (
 	"fmt"
+	"slices"
 
 	"github.com/Polsky75/hse-scoot/internal/domain"
 	"github.com/Polsky75/hse-scoot/internal/inspection"
@@ -30,7 +31,6 @@ type Service struct {
 	source    source.Source
 	inspector *inspection.Inspector
 	items     []domain.IInventoriable
-	consumers []domain.IConsumptor
 }
 
 // NewService создаёт сервис инвентаря.
@@ -80,9 +80,7 @@ func (s *Service) Sync() ([]RegistrationResult, error) {
 
 // Items возвращает копию списка вещей на учёте.
 func (s *Service) Items() []domain.IInventoriable {
-	items := make([]domain.IInventoriable, len(s.items))
-	copy(items, s.items)
-	return items
+	return slices.Clone(s.items)
 }
 
 func (s *Service) register(spec source.DeviceSpec) RegistrationResult {
@@ -112,7 +110,4 @@ func (s *Service) register(spec source.DeviceSpec) RegistrationResult {
 
 func (s *Service) add(item domain.IInventoriable) {
 	s.items = append(s.items, item)
-	if consumer, ok := item.(domain.IConsumptor); ok {
-		s.consumers = append(s.consumers, consumer)
-	}
 }

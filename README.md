@@ -165,6 +165,27 @@ go test ./...
 go vet ./...
 ```
 
+Покрытие считается так:
+
+```sh
+go test -coverprofile=coverage.out ./...
+go tool cover -func=coverage.out | tail -1
+```
+
+Текущее покрытие — **88.9%** (требование: больше 60%).
+
+## Современный Go
+
+Проект следует [JetBrains Modern Go Guidelines](https://github.com/JetBrains/go-modern-guidelines)
+для возможностей, доступных в Go 1.23 из `go.mod`:
+
+- `slices.Clone` вместо ручного копирования срезов;
+- `strings.CutPrefix`/`strings.CutSuffix` вместо проверки и среза вручную;
+- `errors.Is`, `any`, современная семантика замыканий в цикле;
+- `run() error` в `main` вместо повторяющегося `os.Exit` в каждой ветке.
+
+`go fix -diff ./...` не находит дополнительных автоматических модернизаций.
+
 ## Документация
 
 - [PROJECT.md](PROJECT.md) — назначение, структура, статус и roadmap.

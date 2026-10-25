@@ -18,18 +18,12 @@ type Item struct {
 	Category        domain.ItemCategory
 }
 
-// Section — именованный список вещей.
-type Section struct {
-	Title string
-	Items []Item
-}
-
 // Document — готовый отчёт по инвентарю.
 type Document struct {
 	Counts            Counts
-	AllItems          Section
-	Transport         Section
-	BeginnerTransport Section
+	AllItems          []Item
+	Transport         []Item
+	BeginnerTransport []Item
 }
 
 // Build формирует отчёт по всем вещам и отдельно по подходящему новичкам
@@ -42,16 +36,13 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 			Scooters:  CountCategory(items, domain.CategoryScooter),
 			KneePads:  CountCategory(items, domain.CategoryKneePads),
 		},
-		AllItems:          Section{Title: "Вся техника"},
-		Transport:         Section{Title: "Транспорт"},
-		BeginnerTransport: Section{Title: "Транспорт для новичков"},
 	}
 
 	for _, item := range items {
 		view := newItem(item)
-		document.AllItems.Items = append(document.AllItems.Items, view)
+		document.AllItems = append(document.AllItems, view)
 		if _, ok := item.(domain.ITransport); ok {
-			document.Transport.Items = append(document.Transport.Items, view)
+			document.Transport = append(document.Transport, view)
 		}
 	}
 
@@ -59,10 +50,7 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 		if _, ok := item.(domain.ITransport); !ok {
 			continue
 		}
-		document.BeginnerTransport.Items = append(
-			document.BeginnerTransport.Items,
-			newItem(item),
-		)
+		document.BeginnerTransport = append(document.BeginnerTransport, newItem(item))
 	}
 
 	return document

@@ -44,3 +44,11 @@
 > Нужно реализовать счёт определённых вещей на учёте (транспорт, конкретно самокаты, наколенники). Также счёт всех вещей на учёте. У каждой вещи должен быть инвентарный номер. Возможность вывести отчёт в консоль или файл (с заделом на добавление других методов) со списком всей техники, всего транспорта и всего пригодного для новичков транспорта (в них у каждой вещи должна быть указана категория)
 
 **Сделано:** в `IInventoriable` добавлены `GetInventoryNumber()` и `GetCategory()`; введён `ItemCategory` с русскими названиями; добавлен пакет `internal/report` со счётом (`CountAll`, `CountTransport`, `CountCategory`), документом и секциями; вывод реализован через `report.Output` (`ConsoleOutput`, `FileOutput`, `NewOutput`); CLI получил флаги `-report` и `-report-path`; обновлены данные, тесты, [ADR 006](docs/decisions/006-accounting-and-report.md) и документация.
+
+## 2026-10-25 18:02 — https://github.com/JetBrains/go-modern-guidelines
+
+> https://github.com/JetBrains/go-modern-guidelines
+>
+> Используй этот гайдлайн. Обнови программу в соответствии с ним и упрости её по возможности без нарушения принципов SOLID. Покрой тестами больше 60% кода
+
+**Сделано:** применены JetBrains Modern Go Guidelines для Go 1.23 (`slices.Clone`, `strings.CutPrefix`/`CutSuffix`, `slices.ContainsFunc`, `run() error`, `errors.Is`, `any`); упрощён `report.Document` (убрана лишняя обёртка `Section`) и запуск в `main`; `go fix -diff ./...` чист; покрытие — **88.9%** (>60%); обновлены `README.md` и `PROJECT.md`.

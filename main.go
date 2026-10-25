@@ -10,6 +10,13 @@ import (
 )
 
 func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "hse-scoot: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func run() error {
 	devicesPath := flag.String(
 		"devices",
 		"data/devices.txt",
@@ -29,18 +36,13 @@ func main() {
 
 	output, err := report.NewOutput(*reportTarget, *reportPath, os.Stdout)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "hse-scoot: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
 	container, err := di.New(os.Stdout, *devicesPath, output)
 	if err != nil {
-		fmt.Fprintf(os.Stderr, "hse-scoot: %v\n", err)
-		os.Exit(1)
+		return err
 	}
 
-	if err := container.Run(); err != nil {
-		fmt.Fprintf(os.Stderr, "hse-scoot: %v\n", err)
-		os.Exit(1)
-	}
+	return container.Run()
 }

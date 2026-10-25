@@ -15,21 +15,21 @@ func RenderText(document Document) string {
 	fmt.Fprintf(&out, "Самокаты: %d\n", document.Counts.Scooters)
 	fmt.Fprintf(&out, "Наколенники: %d\n", document.Counts.KneePads)
 
-	writeSection(&out, document.AllItems)
-	writeSection(&out, document.Transport)
-	writeSection(&out, document.BeginnerTransport)
+	writeSection(&out, "Вся техника", document.AllItems)
+	writeSection(&out, "Транспорт", document.Transport)
+	writeSection(&out, "Транспорт для новичков", document.BeginnerTransport)
 
 	return out.String()
 }
 
-func writeSection(out *strings.Builder, section Section) {
-	fmt.Fprintf(out, "\n%s (%d):\n", section.Title, len(section.Items))
-	if len(section.Items) == 0 {
+func writeSection(out *strings.Builder, title string, items []Item) {
+	fmt.Fprintf(out, "\n%s (%d):\n", title, len(items))
+	if len(items) == 0 {
 		out.WriteString("  —\n")
 		return
 	}
 
-	for _, item := range section.Items {
+	for _, item := range items {
 		fmt.Fprintf(out, "  %s — %s\n", item.InventoryNumber, item.Category.Label())
 	}
 }

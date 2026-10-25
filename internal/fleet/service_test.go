@@ -2,6 +2,7 @@ package fleet_test
 
 import (
 	"errors"
+	"slices"
 	"testing"
 
 	"github.com/Polsky75/hse-scoot/internal/domain"
@@ -78,9 +79,11 @@ func TestSyncRestoresInventoryAndRegistersInspectedTransport(t *testing.T) {
 		} else {
 			equipment++
 		}
-		if item.GetInventoryNumber() == "SCOOT-002" {
-			t.Error("rejected transport SCOOT-002 must not be in the inventory")
-		}
+	}
+	if slices.ContainsFunc(items, func(item domain.IInventoriable) bool {
+		return item.GetInventoryNumber() == "SCOOT-002"
+	}) {
+		t.Error("rejected transport SCOOT-002 must not be in the inventory")
 	}
 	if transports != 4 || equipment != 2 {
 		t.Errorf("transport/equipment = %d/%d, want 4/2", transports, equipment)

@@ -55,11 +55,12 @@ func (s *Source) Load() (source.Dataset, error) {
 			continue
 		}
 
-		if strings.HasPrefix(line, "[") {
-			if !strings.HasSuffix(line, "]") {
+		if inner, ok := strings.CutPrefix(line, "["); ok {
+			rawSection, closed := strings.CutSuffix(inner, "]")
+			if !closed {
 				return source.Dataset{}, fmt.Errorf("%s:%d: malformed section header %q", s.path, lineNumber, line)
 			}
-			section = strings.TrimSpace(line[1 : len(line)-1])
+			section = strings.TrimSpace(rawSection)
 			switch section {
 			case sectionRegistered, sectionIncoming, sectionEquipment:
 			default:

@@ -1,6 +1,7 @@
 package report_test
 
 import (
+	"slices"
 	"strings"
 	"testing"
 
@@ -36,7 +37,7 @@ func testInventory(t *testing.T) ([]domain.IInventoriable, []domain.IInventoriab
 		item(t, domain.KindScooter, "SCOOT-001", 8),
 		item(t, domain.KindBicycle, "BIKE-001", 9),
 	}
-	items := append([]domain.IInventoriable{}, beginner...)
+	items := slices.Clone(beginner)
 	items = append(items,
 		item(t, domain.KindScooter, "SCOOT-004", 7),
 		item(t, domain.KindEBike, "EBIKE-001", 5),
@@ -54,16 +55,16 @@ func TestBuildCountsAndSections(t *testing.T) {
 	if got := document.Counts; got != (report.Counts{Total: 7, Transport: 4, Scooters: 2, KneePads: 1}) {
 		t.Errorf("counts = %+v, want total=7 transport=4 scooters=2 kneePads=1", got)
 	}
-	if len(document.AllItems.Items) != 7 {
-		t.Errorf("all items = %d, want 7", len(document.AllItems.Items))
+	if len(document.AllItems) != 7 {
+		t.Errorf("all items = %d, want 7", len(document.AllItems))
 	}
-	if len(document.Transport.Items) != 4 {
-		t.Errorf("transport = %d, want 4", len(document.Transport.Items))
+	if len(document.Transport) != 4 {
+		t.Errorf("transport = %d, want 4", len(document.Transport))
 	}
-	if len(document.BeginnerTransport.Items) != 2 {
-		t.Errorf("beginner transport = %d, want 2", len(document.BeginnerTransport.Items))
+	if len(document.BeginnerTransport) != 2 {
+		t.Errorf("beginner transport = %d, want 2", len(document.BeginnerTransport))
 	}
-	if got := document.BeginnerTransport.Items[0]; got.InventoryNumber != "SCOOT-001" || got.Category != domain.CategoryScooter {
+	if got := document.BeginnerTransport[0]; got.InventoryNumber != "SCOOT-001" || got.Category != domain.CategoryScooter {
 		t.Errorf("beginner[0] = %+v, want SCOOT-001/scooter", got)
 	}
 }
