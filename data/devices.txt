@@ -1,0 +1,34 @@
+# hse-scoot — инвентарь
+#
+# Транспорт:
+#   kind inventory_number daily_consumption_kwh inspection_condition ease_of_use
+#
+# kind: scooter | bicycle | ebike
+# condition: целое число 0..100, минимальный проходной балл — 70
+# ease_of_use: целое число 1..10; больше 6 — подходит новичкам
+#
+# Снаряжение:
+#   kind inventory_number
+#
+# kind: helmet | kneepads | charging_station
+#
+# [registered] — начальный парк, уже стоящий на балансе;
+#                восстанавливается без повторного техосмотра.
+# [incoming]   — новые устройства: проходят техосмотр,
+#                затем ставятся на учёт.
+# [equipment]  — шлемы, наколенники и зарядные станции.
+
+[registered]
+scooter  SCOOT-001   1.15  95  8
+bicycle  BIKE-001    0.00  88  9
+ebike    EBIKE-001   1.80  92  4
+
+[incoming]
+scooter  SCOOT-004   1.40  82  7
+ebike    EBIKE-002   2.10  45  5
+bicycle  BIKE-002    0.00  79  6
+
+[equipment]
+helmet           HELMET-001
+kneepads         KNEE-001
+charging_station STATION-001
