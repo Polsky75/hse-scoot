@@ -121,33 +121,9 @@ func TestBuildCountsAndSections(t *testing.T) {
 	}
 }
 
-func TestCountFunctions(t *testing.T) {
+func TestCountCategoriesAndConsumption(t *testing.T) {
 	items, _ := testInventory(t)
 
-	if got := report.CountAll(items); got != 7 {
-		t.Errorf("CountAll() = %d, want 7", got)
-	}
-	if got := report.CountTransport(items); got != 4 {
-		t.Errorf("CountTransport() = %d, want 4", got)
-	}
-	if got := report.CountEquipment(items); got != 3 {
-		t.Errorf("CountEquipment() = %d, want 3", got)
-	}
-	if got := report.CountCategory(items, domain.CategoryScooter); got != 2 {
-		t.Errorf("CountCategory(scooter) = %d, want 2", got)
-	}
-	if got := report.CountCategory(items, domain.CategoryBicycle); got != 1 {
-		t.Errorf("CountCategory(bicycle) = %d, want 1", got)
-	}
-	if got := report.CountCategory(items, domain.CategoryEBike); got != 1 {
-		t.Errorf("CountCategory(ebike) = %d, want 1", got)
-	}
-	if got := report.CountCategory(items, domain.CategoryKneePads); got != 1 {
-		t.Errorf("CountCategory(kneepads) = %d, want 1", got)
-	}
-	if got := report.CountCategory(items, domain.CategoryHelmet); got != 1 {
-		t.Errorf("CountCategory(helmet) = %d, want 1", got)
-	}
 	wantCategories := []report.CategoryCount{
 		{Category: domain.CategoryScooter, Count: 2},
 		{Category: domain.CategoryBicycle, Count: 1},
@@ -181,7 +157,7 @@ func TestRenderTextContainsCountsAndCategories(t *testing.T) {
 		"Наколенники: 1",
 		"Зарядные станции: 1",
 		"Суммарное суточное потребление: 5.00 кВт·ч",
-		"Всё оборудование (3):",
+		"Оборудование (3):",
 		"Транспорт для профессионалов (1):",
 		"Транспорт для новичков (3):",
 		"SCOOT-001 — самокат",

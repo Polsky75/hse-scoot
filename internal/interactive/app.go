@@ -226,27 +226,16 @@ func (a *App) buildItem(
 	number string,
 	withInspection bool,
 ) (domain.IInventoriable, int, error) {
+	consumption, err := a.readConsumption(scanner, kind)
+	if err != nil {
+		return nil, 0, err
+	}
+
 	if !kind.isTransport() {
-		consumption := 0.0
-		var err error
-		if kind.usesEnergy {
-			consumption, err = readFloat(scanner, a.out, "Суточный расход, кВт·ч: ")
-			if err != nil {
-				return nil, 0, err
-			}
-		}
 		item, err := domain.NewEquipment(kind.equipment, number, consumption)
 		return item, 0, err
 	}
 
-	consumption := 0.0
-	var err error
-	if kind.usesEnergy {
-		consumption, err = readFloat(scanner, a.out, "Суточный расход, кВт·ч: ")
-		if err != nil {
-			return nil, 0, err
-		}
-	}
 	ease, err := readInt(scanner, a.out, "Лёгкость использования (1..10): ", 1, 10)
 	if err != nil {
 		return nil, 0, err
@@ -262,6 +251,13 @@ func (a *App) buildItem(
 
 	transport, err := domain.NewTransport(kind.transport, number, consumption, ease)
 	return transport, condition, err
+}
+
+func (a *App) readConsumption(scanner *bufio.Scanner, kind itemKind) (float64, error) {
+	if !kind.usesEnergy {
+		return 0, nil
+	}
+	return readFloat(scanner, a.out, "Суточный расход, кВт·ч: ")
 }
 
 func (a *App) reportBuildError(err error) error {

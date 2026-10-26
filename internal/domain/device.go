@@ -93,6 +93,13 @@ func (d transportDevice) GetEaseOfUse() int {
 	return d.easeOfUse
 }
 
+func validateConsumption(dailyConsumptionKWh float64) error {
+	if dailyConsumptionKWh < 0 {
+		return fmt.Errorf("%w: %g", ErrNegativeConsumption, dailyConsumptionKWh)
+	}
+	return nil
+}
+
 // electricDevice добавляет к транспорту суточный расход электроэнергии.
 type electricDevice struct {
 	transportDevice
@@ -109,8 +116,8 @@ func newElectricDevice(
 	if err != nil {
 		return electricDevice{}, err
 	}
-	if dailyConsumptionKWh < 0 {
-		return electricDevice{}, fmt.Errorf("%w: %g", ErrNegativeConsumption, dailyConsumptionKWh)
+	if err := validateConsumption(dailyConsumptionKWh); err != nil {
+		return electricDevice{}, err
 	}
 
 	return electricDevice{

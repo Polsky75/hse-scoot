@@ -33,11 +33,6 @@ func ParseEquipmentKind(value string) (EquipmentKind, error) {
 	}
 }
 
-// String возвращает текстовое представление вида снаряжения.
-func (k EquipmentKind) String() string {
-	return string(k)
-}
-
 // NewEquipment создаёт вещь инвентаря, не являющуюся транспортом.
 //
 // Расход энергии допустим только для зарядной станции.
@@ -124,8 +119,8 @@ func NewChargingStation(inventoryNumber string, dailyConsumptionKWh float64) (*C
 	if err != nil {
 		return nil, err
 	}
-	if dailyConsumptionKWh < 0 {
-		return nil, fmt.Errorf("%w: %g", ErrNegativeConsumption, dailyConsumptionKWh)
+	if err := validateConsumption(dailyConsumptionKWh); err != nil {
+		return nil, err
 	}
 	return &ChargingStation{
 		equipmentItem:       item,

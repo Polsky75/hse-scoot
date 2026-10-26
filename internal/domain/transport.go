@@ -42,11 +42,6 @@ func ParseTransportKind(value string) (TransportKind, error) {
 	}
 }
 
-// String возвращает текстовое представление вида транспорта.
-func (k TransportKind) String() string {
-	return string(k)
-}
-
 // NewTransport создаёт транспорт нужного вида.
 //
 // Чтобы добавить новый вид, достаточно добавить константу и ветку в

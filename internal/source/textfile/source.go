@@ -33,7 +33,8 @@ func New(path string) *Source {
 //
 // Транспорт: kind inventory_number daily_consumption_kwh condition ease_of_use
 // в секциях [registered] и [incoming].
-// Снаряжение: kind inventory_number в секции [equipment].
+// Снаряжение: kind inventory_number [daily_consumption_kwh]
+// в секции [equipment]; расход обязателен только для зарядной станции.
 // Пустые строки и строки, начинающиеся с #, игнорируются.
 func (s *Source) Load() (source.Dataset, error) {
 	file, err := os.Open(s.path)
@@ -150,17 +151,25 @@ func parseEquipmentSpec(line string) (source.EquipmentSpec, error) {
 			kind, len(fields),
 		)
 	}
-	consumption, err := strconv.ParseFloat(fields[2], 64)
+	consumption, err := parseConsumption(fields[2])
 	if err != nil {
-		return source.EquipmentSpec{}, fmt.Errorf("invalid daily consumption %q: %w", fields[2], err)
-	}
-	if math.IsNaN(consumption) || math.IsInf(consumption, 0) || consumption < 0 {
-		return source.EquipmentSpec{}, fmt.Errorf(
-			"daily consumption must be a non-negative finite number, got %q", fields[2],
-		)
+		return source.EquipmentSpec{}, err
 	}
 	spec.DailyConsumptionKWh = consumption
 	return spec, nil
+}
+
+func parseConsumption(value string) (float64, error) {
+	consumption, err := strconv.ParseFloat(value, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid daily consumption %q: %w", value, err)
+	}
+	if math.IsNaN(consumption) || math.IsInf(consumption, 0) || consumption < 0 {
+		return 0, fmt.Errorf(
+			"daily consumption must be a non-negative finite number, got %q", value,
+		)
+	}
+	return consumption, nil
 }
 
 func parseDeviceSpec(line string) (source.DeviceSpec, error) {
@@ -177,14 +186,9 @@ func parseDeviceSpec(line string) (source.DeviceSpec, error) {
 		return source.DeviceSpec{}, err
 	}
 
-	consumption, err := strconv.ParseFloat(fields[2], 64)
+	consumption, err := parseConsumption(fields[2])
 	if err != nil {
-		return source.DeviceSpec{}, fmt.Errorf("invalid daily consumption %q: %w", fields[2], err)
-	}
-	if math.IsNaN(consumption) || math.IsInf(consumption, 0) || consumption < 0 {
-		return source.DeviceSpec{}, fmt.Errorf(
-			"daily consumption must be a non-negative finite number, got %q", fields[2],
-		)
+		return source.DeviceSpec{}, err
 	}
 
 	condition, err := strconv.Atoi(fields[3])

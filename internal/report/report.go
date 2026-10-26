@@ -37,8 +37,8 @@ type Document struct {
 	BeginnerTransport     []Item
 }
 
-// Build формирует отчёт: оборудование (всё, что не транспорт), транспорт
-// и отдельно транспорт, подходящий новичкам.
+// Build формирует отчёт: оборудование (всё, что не транспорт),
+// транспорт для профессионалов и транспорт для новичков.
 func Build(items, beginnerItems []domain.IInventoriable) Document {
 	beginner := make(map[string]struct{}, len(beginnerItems))
 	for _, item := range beginnerItems {
@@ -62,7 +62,7 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 	}
 
 	document.Counts = Counts{
-		Total:                    CountAll(items),
+		Total:                    len(items),
 		Equipment:                len(document.Equipment),
 		ProfessionalTransport:    len(document.ProfessionalTransport),
 		BeginnerTransport:        len(document.BeginnerTransport),
@@ -70,33 +70,6 @@ func Build(items, beginnerItems []domain.IInventoriable) Document {
 		TotalDailyConsumptionKWh: CountDailyConsumptionKWh(items),
 	}
 	return document
-}
-
-// CountAll возвращает количество всех вещей.
-func CountAll(items []domain.IInventoriable) int {
-	return len(items)
-}
-
-// CountTransport возвращает количество транспорта.
-func CountTransport(items []domain.IInventoriable) int {
-	var count int
-	for _, item := range items {
-		if _, ok := item.(domain.ITransport); ok {
-			count++
-		}
-	}
-	return count
-}
-
-// CountEquipment возвращает количество вещей, не являющихся транспортом.
-func CountEquipment(items []domain.IInventoriable) int {
-	var count int
-	for _, item := range items {
-		if _, ok := item.(domain.ITransport); !ok {
-			count++
-		}
-	}
-	return count
 }
 
 // CountCategories возвращает количество вещей по категориям в порядке
@@ -131,17 +104,6 @@ func CountDailyConsumptionKWh(items []domain.IInventoriable) float64 {
 		total += consumer.GetDailyConsumptionKWh()
 	}
 	return total
-}
-
-// CountCategory возвращает количество вещей указанной категории.
-func CountCategory(items []domain.IInventoriable, category domain.ItemCategory) int {
-	var count int
-	for _, item := range items {
-		if item.GetCategory() == category {
-			count++
-		}
-	}
-	return count
 }
 
 func newItem(item domain.IInventoriable) Item {

@@ -22,7 +22,7 @@ func RenderText(document Document) string {
 	}
 	fmt.Fprintf(&out, "Суммарное суточное потребление: %.2f кВт·ч\n", document.Counts.TotalDailyConsumptionKWh)
 
-	writeSection(&out, "Всё оборудование", document.Equipment)
+	writeSection(&out, "Оборудование", document.Equipment)
 	writeSection(&out, "Транспорт для профессионалов", document.ProfessionalTransport)
 	writeSection(&out, "Транспорт для новичков", document.BeginnerTransport)
 

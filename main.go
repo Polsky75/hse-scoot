@@ -17,26 +17,10 @@ func main() {
 }
 
 func run() error {
-	devicesPath := flag.String(
-		"devices",
-		"data/devices.txt",
-		"путь к текстовому файлу с инвентарём",
-	)
-	reportTarget := flag.String(
-		"report",
-		"console",
-		"куда вывести отчёт: console или file",
-	)
-	reportPath := flag.String(
-		"report-path",
-		"report.txt",
-		"путь к файлу отчёта при -report=file",
-	)
-	interactiveMode := flag.Bool(
-		"interactive",
-		false,
-		"вводить данные в консоли без файла",
-	)
+	devicesPath := flag.String("devices", "data/devices.txt", "путь к текстовому файлу с инвентарём")
+	reportTarget := flag.String("report", "console", "куда вывести отчёт: console или file")
+	reportPath := flag.String("report-path", "report.txt", "путь к файлу отчёта при -report=file")
+	interactiveMode := flag.Bool("interactive", false, "вводить данные в консоли без файла")
 	flag.Parse()
 
 	output, err := report.NewOutput(*reportTarget, *reportPath, os.Stdout)
